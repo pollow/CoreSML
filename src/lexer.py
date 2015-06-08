@@ -6,8 +6,12 @@
 #  Created by Kael on 6/4/15.
 #  Copyright (c) 2015 Xinyuan Lu. All rights reserved.
 #
+# Revisions:
+# - rev 0.2 (2015-06-08)
+#   Add SYMBOLIC support and literals for single character tokens.
 # ------------------------------------------------------------
 
+import unittest
 import ply.lex as lex
 
 reserved = {
@@ -115,6 +119,7 @@ t_ignore  = ' \t'
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
+
 
 if __name__ == "__main__":
     # Build the lexer
