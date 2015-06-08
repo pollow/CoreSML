@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-#  lex.py
+#  lexer.py
 #
 #  CoreSML
 #
@@ -148,7 +148,6 @@ def t_STRING_VAL(t):
     return t
 
 # comment
-# todo: conflicts with ignore
 def t_COMMENT(t):
     # r'\(\*([^*)]|[^*]\)|\*[^)])*\*\)'
     r'\(\*([^*]|[\r\n]|(\*+([^*)]|[\r\n])))*\*+\)'
@@ -161,7 +160,6 @@ def t_newline(t):
     t.lexer.lineno += len(t.value)
 
 # ignore
-# todo: conflicts with t_COMMENT!!!!
 t_ignore  = ' \t'
 
 # Error handling rule
@@ -169,48 +167,47 @@ def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
-# Build the lexer
-lexer = lex.lex()
+if __name__ == "__main__":
+    # Build the lexer
+    lexer = lex.lex()
 
-# Test data
-data = r'''
-1 + 2;
-val a__' = "foo";
-val b = (*here is a
- * )comm
- ent ) !*) 1.0;
-val c = 1.0E5;
-val d = 2e3;
-c / d;
-c div d;
-let
-    val a : int = 10;
-in
-    a * 19.0 div 2 / 3;
-end
+    # Test data
+    data = r'''
+        1 + 2;
+        val a__' = "foo";
+        val b = (*here is a
+         * )comm
+         ent ) !*) 1.0;
+        val c = 1.0E5;
+        val d = 2e3;
+        c / d;
+        c div d;
+        let
+            val a : int = 10;
+        in
+            a * 19.0 div 2 / 3;
+        end
 
-val str = "abc\u0000";
+        val str = "abc\u0000";
 
-val ## = 1;
-val x = fn x => x * 2;
-val y = case ## of
-  1=> 2
-| 2 -> 3
-| 3 -> (1,2,3)
-end;
-'''
+        val ## = 1;
+        val x = fn x => x * 2;
+        val y = case ## of
+          1=> 2
+        | 2 -> 3
+        | 3 -> (1,2,3)
+        end;
+    '''
 
-# todo: symbolic
+    # Give the lexer input
+    lexer.input(data)
 
-# Give the lexer input
-lexer.input(data)
+    # Tokenize
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
 
-# Tokenize
-while True:
-    tok = lexer.token()
-    if not tok:
-        break
-    
-    print(tok)
+        print(tok)
 
-# todo: deal with trailing semiconlon
+    # todo: deal with trailing semiconlon
