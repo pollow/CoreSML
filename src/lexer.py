@@ -45,64 +45,27 @@ reserved = {
     'div' : 'DIV_INT',
     'use' : 'USE',
 
-    '...'   : 'SUSPENSION',
     '=>'    : 'LEADS_TO',
-    '->'    :'POINTS_TO',
-
-    ':'	: 'COLON',
-    '_'	: 'UNDERLINE',
-    '|'	: 'VERTICAL_BAR',
-    '='	: 'EQUAL',
-    '#'	: 'POUND_KEY',
+    '->'    : 'POINTS_TO',
 }
 
 tokens = [
-    'PARENTHESES_L',
-    'PARENTHESES_R',
-    'BRACKET_L',
-    'BRACKET_R',
-    'BRACE_R',
-    'BRACE_L',
-    'COMMA',
-    'SEMICOLON',
+    'SUSPENSION',
+    'LEADS_TO',
+    'POINTS_TO',
+
     'REAL_VAL',
     'INT_VAL',
     'STRING_VAL',
     'COMMENT',
     'SYMBOLIC',
     'ALPHANUMERIC',
-    'ADD',
-    'SUB',
-    'DIV',
-    'MUL',
-    'AT',
-    'EXCLAMATION',
-    'DOLLAR',
-    'LESS_THAN',
-    'LARGER_THAN',
-    'CONCATENATION',
-    'TILDE',
-    'PRIME',
     ] + list(reserved.values())
 
-t_PARENTHESES_L = r'\('
-t_PARENTHESES_R = r'\)'
-t_BRACKET_L     = r'\['
-t_BRACKET_R     = r'\]'
-t_BRACE_R       = r'\{'
-t_BRACE_L       = r'\}'
-t_COMMA         = r','
-t_SEMICOLON     = r';'
-t_UNDERLINE     = r'\_'
-# t_COLON         = r':'
-# t_VERTICAL_BAR  = r'\|'
-# t_EQUAL         = r'='
-# t_POUND_KEY     = r'\#'
+t_SUSPENSION = r'\.{3}'
 
-# t_SUSPENSION = r'\.\.\.'
-# t_LEADS_TO = r'=>'
-# t_POINTS_TO = r'->'
-
+literals = [ '(', ')', '[', ']', '{', '}', ',', ';', '_', ':', '|', '=', '#', \
+             '+', '-', '/', '*', '@', '!', '$', '<', '>', '^', '~', '\'']
 
 def t_ALPHANUMERIC(t):
     r'([a-zA-Z][\w\'_]*)|(\'[\w\'_]*)'
@@ -111,23 +74,9 @@ def t_ALPHANUMERIC(t):
 
 
 def t_SYMBOLIC(t):
-    r'[\!\%\&\$\#\+\-\/\:\<\=\>\?\@\|\~\`\^\|\*]+'
+    r'[\!\%\&\$\#\+\-\/\:\<\=\>\?\@\|\~\`\^\\\*]{2,}'
     t.type = reserved.get(t.value, 'SYMBOLIC')
     return t
-
-
-t_ADD=r'\+'
-t_SUB=r'-'
-t_DIV=r'/'
-t_MUL=r'\*'
-t_AT=r'\@'
-t_EXCLAMATION=r'\!'
-t_DOLLAR=r'\$'
-t_LESS_THAN=r'\<'
-t_LARGER_THAN=r'\>'
-t_CONCATENATION=r'\^'
-t_TILDE=r'\~'
-t_PRIME=r'\''
 
 # real (implemented by float)
 def t_REAL_VAL(t):
@@ -190,13 +139,16 @@ if __name__ == "__main__":
 
         val str = "abc\u0000";
 
-        val ## = 1;
+        val ## = 1 #! !# |#|;
         val x = fn x => x * 2;
         val y = case ## of
           1=> 2
         | 2 -> 3
         | 3 -> (1,2,3)
         end;
+
+        val q = !x;
+        _ ! $ @ @@ ... => -> .
     '''
 
     # Give the lexer input
