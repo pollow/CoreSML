@@ -72,7 +72,7 @@ Examples: abc, ABC123, Abc_123, 'a.
 
 **Symbolic**: a sequence of the following
 
- 	! % & $ # + - / : < = > ? @ | ~ ` ^ | *
+ 	! % & $ # + - / : < = > ? @ \ ~ ` ^ | *
 	
 Examples: +=, <=, >>, $.
 
@@ -90,7 +90,8 @@ value identifier (includes variables and constructors)
 Four types should be defined seperately.
 
 ## Lexical analysis
-Each item of lexical analysis is either a reserved word, a numeric label, a special constant or a long identifier. Comments and formatting characters separate items (except within string constants) and are otherwise ignored. At each stage the longest next item is taken.
+
+Each item of lexical analysis is either a reserved word, a numeric label, a special constant or a long identifier. Comments and formatting characters separate items (except within string constants) and are otherwise ignored. At each stage the longest next item is taken.
 
 ## Reference
 

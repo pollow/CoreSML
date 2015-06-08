@@ -44,6 +44,16 @@ reserved = {
     'real' : 'REAL',
     'div' : 'DIV_INT',
     'use' : 'USE',
+
+    '...'   : 'SUSPENSION',
+    '=>'    : 'LEADS_TO',
+    '->'    :'POINTS_TO',
+
+    ':'	: 'COLON',
+    '_'	: 'UNDERLINE',
+    '|'	: 'VERTICAL_BAR',
+    '='	: 'EQUAL',
+    '#'	: 'POUND_KEY',
 }
 
 tokens = [
@@ -54,15 +64,7 @@ tokens = [
     'BRACE_R',
     'BRACE_L',
     'COMMA',
-    'COLON',
     'SEMICOLON',
-    'SUSPENSION',
-    'UNDERLINE',
-    'VERTICAL_BAR',
-    'EQUAL',
-    'LEADS_TO',
-    'POINTS_TO',
-    'POUND_KEY',
     'REAL_VAL',
     'INT_VAL',
     'STRING_VAL',
@@ -81,31 +83,39 @@ tokens = [
     'CONCATENATION',
     'TILDE',
     'PRIME',
-    # 'NEWLINE',
     ] + list(reserved.values())
 
 t_PARENTHESES_L = r'\('
 t_PARENTHESES_R = r'\)'
-t_BRACKET_L = r'\['
-t_BRACKET_R = r'\]'
-t_BRACE_R = r'\{'
-t_BRACE_L = r'\}'
-t_COMMA = r','
-t_COLON = r':'
-t_SEMICOLON = r';'
-t_SUSPENSION = r'\.\.\.'
-t_UNDERLINE = r'\_'
-t_VERTICAL_BAR = r'\|'
-t_EQUAL = r'='
-t_LEADS_TO = r'=>'
-t_POINTS_TO = r'->'
-t_POUND_KEY = r'\#'
-#
+t_BRACKET_L     = r'\['
+t_BRACKET_R     = r'\]'
+t_BRACE_R       = r'\{'
+t_BRACE_L       = r'\}'
+t_COMMA         = r','
+t_SEMICOLON     = r';'
+t_UNDERLINE     = r'\_'
+# t_COLON         = r':'
+# t_VERTICAL_BAR  = r'\|'
+# t_EQUAL         = r'='
+# t_POUND_KEY     = r'\#'
+
+# t_SUSPENSION = r'\.\.\.'
+# t_LEADS_TO = r'=>'
+# t_POINTS_TO = r'->'
+
+
 def t_ALPHANUMERIC(t):
     r'([a-zA-Z][\w\'_]*)|(\'[\w\'_]*)'
     t.type = reserved.get(t.value,'ALPHANUMERIC')
     return t
-#
+
+
+def t_SYMBOLIC(t):
+    r'[\!\%\&\$\#\+\-\/\:\<\=\>\?\@\|\~\`\^\|\*]+'
+    t.type = reserved.get(t.value, 'SYMBOLIC')
+    return t
+
+
 t_ADD=r'\+'
 t_SUB=r'-'
 t_DIV=r'/'
@@ -118,8 +128,6 @@ t_LARGER_THAN=r'\>'
 t_CONCATENATION=r'\^'
 t_TILDE=r'\~'
 t_PRIME=r'\''
-# t_NEWLINE=r'\n'
-# >=, <=???????
 
 # real (implemented by float)
 def t_REAL_VAL(t):
@@ -165,7 +173,7 @@ def t_error(t):
 lexer = lex.lex()
 
 # Test data
-data = '''
+data = r'''
 1 + 2;
 val a__' = "foo";
 val b = (*here is a
@@ -180,6 +188,16 @@ let
 in
     a * 19.0 div 2 / 3;
 end
+
+val str = "abc\u0000";
+
+val ## = 1;
+val x = fn x => x * 2;
+val y = case ## of
+  1=> 2
+| 2 -> 3
+| 3 -> (1,2,3)
+end;
 '''
 
 # todo: symbolic
