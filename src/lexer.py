@@ -48,6 +48,7 @@ reserved = {
     'real' : 'REAL',
     'div' : 'DIV_INT',
     'use' : 'USE',
+    'op' : 'OP',
 
     '=>'    : 'LEADS_TO',
     '->'    : 'POINTS_TO',
@@ -55,12 +56,11 @@ reserved = {
 
 tokens = [
     'SUSPENSION',
-    'LEADS_TO',
-    'POINTS_TO',
 
     'REAL_VAL',
     'INT_VAL',
     'STRING_VAL',
+    'CHAR_VAL',
     'COMMENT',
     'SYMBOLIC',
     'ALPHANUMERIC',
@@ -69,7 +69,7 @@ tokens = [
 t_SUSPENSION = r'\.{3}'
 
 literals = [ '(', ')', '[', ']', '{', '}', ',', ';', '_', ':', '|', '=', '#', \
-             '+', '-', '/', '*', '@', '!', '$', '<', '>', '^', '~', '\'']
+             '+', '-', '/', '*', '@', '!', '$', '<', '>', '^', '~', '\'', "'"]
 
 def t_ALPHANUMERIC(t):
     r'([a-zA-Z][\w\'_]*)|(\'[\w\'_]*)'
@@ -100,6 +100,12 @@ def t_STRING_VAL(t):
     t.value = t.value[1:-1]
     return t
 
+# char
+def t_CHAR_VAL(t):
+    r'\#\"[^"]*\"'
+    t.value = t.value[2:-1]
+    return t
+
 # comment
 def t_COMMENT(t):
     # r'\(\*([^*)]|[^*]\)|\*[^)])*\*\)'
@@ -121,10 +127,10 @@ def t_error(t):
     t.lexer.skip(1)
 
 
-if __name__ == "__main__":
-    # Build the lexer
-    lexer = lex.lex()
+# Build the lexer
+lexer = lex.lex()
 
+if __name__ == "__main__":
     # Test data
     data = r'''
         1 + 2;

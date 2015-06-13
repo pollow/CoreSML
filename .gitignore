@@ -58,3 +58,7 @@ target/
 
 # PyCharm
 .idea/
+
+# PLY
+parsetab.py
+parser.out

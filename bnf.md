@@ -52,6 +52,8 @@ The first edition is called chrysanthemum.
 3. String
 	1. between quotes (") , 0 or more printable characters, spaces or escape sequences.
 	2. escape sequence with form `\ddd`, three digital.
+4. Char
+	1. `#"x"`
 
 ## Comments
 
@@ -92,6 +94,58 @@ Four types should be defined seperately.
 ## Lexical analysis
 
 Each item of lexical analysis is either a reserved word, a numeric label, a special constant or a long identifier. Comments and formatting characters separate items (except within string constants) and are otherwise ignored. At each stage the longest next item is taken.
+
+## Grammer
+
+### type construction
+
+```
+- type ('a, 'b) kk = 'a * 'a * 'b;
+type ('a,'b) kk = 'a * 'a * 'b
+- val a : (int, int)kk = (1,1,1);
+val a = (1,1,1) : (int,int) kk
+- val b : (int, real) kk = (1,1,1.2);
+val b = (1,1,1.2) : (int,real) kk
+```
+
+### type scope
+
+[This Link](http://mlton.org/TypeVariableScope) described the what type variables means.
+
+### type variables bound
+
+To understand this concept, read the following snippets carefully.
+
+```
+fun f (x,y,a,b,c) =
+    let
+        fun 'a pair (x : 'a, y : 'a) = (x, y)
+        fun 'a triple (x : 'a, y : 'a, z : 'a) = (x, y, z)
+    in
+        (pair(x, y), triple(a, b, c))
+    end
+val f = fn : 'a * 'a * 'b * 'b * 'b -> ('a * 'a) * ('b * 'b * 'b)
+
+fun 'a f (x,y,a,b,c) =
+    let
+        fun pair (x : 'a, y : 'a) = (x, y)
+        fun triple (x : 'a, y : 'a, z : 'a) = (x, y, z)
+    in
+        (pair(x, y), triple(a, b, c))
+    end
+val f = fn : 'a * 'a * 'a * 'a * 'a -> ('a * 'a) * ('a * 'a * 'a)
+
+fun f (x,y,a,b,c) =
+    let
+        fun pair (x, y) = (x, y)
+        fun triple (x, y, z) = (x, y, z)
+    in
+        (pair(x, y), triple(a, b, c))
+    end
+val f = fn : 'a * 'b * 'c * 'd * 'e -> ('a * 'b) * ('c * 'd * 'e)
+```
+
+Along with the answer from [this queston](http://stackoverflow.com/questions/30710680/what-type-variables-means-when-they-occurred-in-val-declaration-statement-in?answertab=active#tab-top) and section 1.1.3 in [this page](http://www.smlnj.org/doc/Conversion/types.html).
 
 ## Reference
 
