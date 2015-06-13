@@ -43,15 +43,15 @@ reserved = {
     'with' : 'WITH',
     'withtype' : 'WITHTYPE',
     'while' : 'WHILE',
-    'int' : 'INT',
-    'string' : 'STRING',
-    'real' : 'REAL',
+    # 'int' : 'INT',
+    # 'string' : 'STRING',
+    # 'real' : 'REAL',
     'div' : 'DIV_INT',
     'use' : 'USE',
     'op' : 'OP',
 
-    '=>'    : 'LEADS_TO',
-    '->'    : 'POINTS_TO',
+    '=>'    : 'LEAD_TO',
+    '->'    : 'POINT_TO',
 }
 
 tokens = [
