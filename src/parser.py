@@ -9,6 +9,7 @@ def p_cons(p):
             | STRING_VAL
             | CHAR_VAL'''
     p[0] = p[1]
+    print(type(p[1]), p[1], sep=" ")
     print(" CONS ")
 
 
@@ -16,6 +17,7 @@ def p_vid(p):
     ''' vid : SYMBOLIC
             | ALPHANUMERIC
     '''
+    print(type(p[1]), p[1], sep=" ")
     print(" VID({0}) ".format(p[1]))
     p[0] = p[1]
 
@@ -41,7 +43,7 @@ def p_lab(p):
     ''' lab : vid
             | INT_VAL
     '''
-    try
+    try:
         p[0] = int(p[1])
     except ValueError:
         p[0] = p[1]
@@ -158,6 +160,7 @@ def p_exp(p):
     '''
     print(" EXP ")
 
+
 def p_match(p):
     ''' match   : mrule
                 | mrule '|' match
@@ -168,6 +171,8 @@ def p_match(p):
 def p_mrule(p):
     ''' mrule : pat LEAD_TO exp
     '''
+    print(" MRULE ")
+    pass
 
 
 def p_dec(p):
