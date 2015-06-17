@@ -2,7 +2,7 @@ from lexer import tokens
 import ply.yacc as yacc
 from ast import *
 
-start = 'exp'
+debug = 1
 
 int_type    = TyCon([], "int", 0)
 real_type   = TyCon([], "real", 0)
@@ -17,6 +17,21 @@ primative_tycon = {
     'string'    : string_type,
     'char'      : char_type
 }
+
+def p_program(p):
+    '''program  : program ';' exp 
+                | program ';' dec
+                | exp
+                | dec
+    '''
+    if debug==1:
+        print('     PROGRAM')
+
+    if len(p) == 2:
+        p[0] = [ p[1] ]
+    else:
+        p[0] = p[1] + [ p[3] ]
+
 
 def p_cons_int(p):
     'cons : INT_VAL'
@@ -49,9 +64,6 @@ def p_vid(p):
     print(" VID : ", p[1])
     p[0] = p[1]
 
-#
-# Types and Patterns
-#
 
 def p_tycon(p):
     ''' tycon : vid
@@ -77,6 +89,11 @@ def p_lab(p):
         p[0] = p[1]
 
     print(" LAB : ", p[0])
+
+
+# (*---------------------------------------------------------------*)
+# (*                             Pattern                           *)
+# (*---------------------------------------------------------------*)
 
 
 # atomic pattern
@@ -113,7 +130,7 @@ def p_atpat(p):
 
 
 def p_patrow_seq(p):
-    ''' patrow_seq   : lab '=' pat
+    ''' patrow_seq  : lab '=' pat
                     | lab '=' pat ',' patrow
     '''
     if len(p) == 4:
@@ -153,28 +170,45 @@ def p_pat(p):
         p[0] = Pattern(Value(value=[RecordItem(1, p[1].value), RecordItem(2, p[3].value)], vcon=p[2]))
 
 
+# (*---------------------------------------------------------------*)
+# (*                           type                                *)
+# (*---------------------------------------------------------------*)
+
 
 def p_ty(p):
-    ''' ty  : tyvar
-            | '{' '}'
-            | '{' tyrow '}'
-            | tyseq tycon
+    ''' ty  : aty
             | ty POINT_TO ty
     '''
+
+def p_aty_con(p):
+    ''' aty : tycon
+            | aty tycon
+            | '(' tyseq_l ')' tycon
+    '''
+    if len(p) == 2:
+        p[0] = TyCon(tyvar = [], name = p[1])
+    elif len(p) == 3:
+        p[0] = TyCon([p[1]], p[2], 1)
+    else:
+        p[0] = TyCon(p[3], p[3], len(p[2]))
+
+
+def p_aty(p):
+    ''' aty : tyvar
+            | '(' ty ')'
+            | '{' '}'
+            | '{' tyrow '}'
+    '''
     print(" TY ")
-    if len(p) == 1:
+    if len(p) == 2:
         p[0] = p[1]
+    elif p[1] == '(':
+        p[0] = p[2]
     elif p[1] == '{':
         if len(p) == 3:
             p[0] = unit_type
         else:
             p[0] = p[2]
-    elif len(p) == 3:
-        p[0] = TyCon(p[1], p[2], len(p[1]))
-    else:
-        p[0] = TyCon(type=(p[1], p[3]))
-
-# | '(' ty ')'
 
 
 def p_tyrow(p):
@@ -189,36 +223,33 @@ def p_tyrow(p):
         p[0].type[p[1]] = p[3]
 
 
-def p_tyseq_e(p):
-    ' tyseq : empty '
-    print(" TYSEQ EMPTY ")
-    p[0] = []
-
-def p_tyseq(p):
-    ''' tyseq   : ty
-                | '(' tyseq_l ')'
-    '''
-    print(" TYSEQ ", len(p))
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = p[2]
+# def p_tyseq_e(p):
+#     ' tyseq : empty '
+#     print(" TYSEQ EMPTY ")
+#     p[0] = []
+# 
+# def p_tyseq(p):
+#     ''' tyseq   : ty
+#                 | '(' tyseq_l ')'
+#     '''
+#     print(" TYSEQ ", len(p))
+#     if len(p) == 2:
+#         p[0] = [p[1]]
+#     else:
+#         p[0] = p[2]
 
 
 def p_tyseq_l(p):
-    ''' tyseq_l : ty
+    ''' tyseq_l : ty ',' ty
                 | ty ',' tyseq_l
     '''
     print(" TYSEQ_LIST ")
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[3]
+    p[0] = [ p[1] ] + (p[3] if type(p[3]) == list else [ p[3] ])
 
-#
-# Expressions and Declaration
-#
 
+# (*---------------------------------------------------------------*)
+# (*                        expression                             *)
+# (*---------------------------------------------------------------*)
 
 
 def p_atexp_c(p):
@@ -235,10 +266,11 @@ def p_atexp_r(p):
     else:
         p[0] = Expression( "Record", p[2] )
 
+
 def p_atexp(p):
     ''' atexp   : vid
                 | OP vid
-                | LET dec IN exp END
+                | LET decs IN exp END
                 | '(' exp ')'
     '''
     if len(p) == 2:
@@ -266,6 +298,10 @@ def p_exprow(p):
 def p_exp(p):
     ''' exp : app_exp
             | exp ':' ty
+            | exp ANDALSO exp
+            | exp ORELSE exp
+            | CASE exp OF match
+            | IF exp THEN exp ELSE exp
             | FN match
     '''
     print(" EXP ")
@@ -275,6 +311,14 @@ def p_exp(p):
         p[0] = Expression( "Fn", p[2] )
     elif p[2] == ':':
         p[0] = Expression( "Constraint", ( p[1], p[3] ) )
+    elif p[2] == "andalso":
+        p[0] = Expression( "Andalso", (p[1], p[3]) )
+    elif p[2] == "orelse":
+        p[0] = Expression( "Orelse", (p[1], p[3]) )
+    elif len(p) == 5:
+        p[0] = Expression( "Case",  (p[2], p[4]) )
+    elif len(p) == 5:
+        p[0] = Expression( "If",  (p[2], p[4], p[6]) )
 
 
 def p_app_exp(p):
@@ -289,6 +333,11 @@ def p_app_exp1(p):
                     | app_exp
     '''
     p[0] = p[1]
+
+
+# (*---------------------------------------------------------------*)
+# (*                        declaration                            *)
+# (*---------------------------------------------------------------*)
 
 
 def p_match(p):
@@ -325,12 +374,16 @@ def p_decs(p):
 
 def p_dec(p):
     ''' dec : VAL tyvarseq valbind
+            | VAL valbind
             | TYPE typbind
             | DATATYPE datbind
     '''
     print(" DEC ", p[1])
     if  p[1] == "val":
-        p[0] = (p[1], p[2], p[3])
+        if len(p) == 4:
+            p[0] = (p[1], p[2], p[3])
+        else:
+            p[0] = (p[1], [], p[2])
     elif p[1] == "type":
         p[0] = (p[1], p[2])
     else:
@@ -364,20 +417,29 @@ def p_fvalbind(p):
 def p_typbind(p):
     ''' typbind : tyvarseq tycon '=' ty
                 | tyvarseq tycon '=' ty AND typbind
+                | tycon '=' ty
+                | tycon '=' ty AND typbind
     '''
     print(" TYPBIND ")
-    if len(p) == 5:
+    if len(p) == 4:
+        p[0] = [ typbind([], p[2], p[3]) ]
+    elif len(p) == 5:
         p[0] = [ typbind(p[1], p[2], p[3]) ]
+    elif len(p) == 6:
+        p[0] = [ typbind([], p[2], p[3]) ] + p[6]
     else:
         p[0] = [ typbind(p[1], p[2], p[3]) ] + p[6]
 
 
 def p_datbind(p):
     ''' datbind : tyvarseq tycon '=' conbind
+                | tycon '=' conbind
     '''
     #  | tyvarseq tycon '=' conbind AND datbind
     print(" DATBIND ")
-    if len(p) == 5:
+    if len(p) == 4:
+        p[0] = [ datbind([], p[2], p[3]) ]
+    elif len(p) == 5:
         p[0] = [ datbind(p[1], p[2], p[3]) ]
     else:
         p[0] = [ datbind(p[1], p[2], p[3]) ] + p[6]
@@ -415,14 +477,18 @@ def p_connext(p):
     else:
         p[0] = p[2]
 
+# (*---------------------------------------------------------------*)
+# (*                           type                                *)
+# (*---------------------------------------------------------------*)
 
-def p_tyvarseq_e(p):
-    ' tyvarseq    : empty '
-    p[0] = p[1]
+
+# def p_tyvarseq_e(p):
+#     ' tyvarseq    : empty '
+#     p[0] = p[1]
 
 
 def p_tyvarseq(p):
-    ''' tyvarseq    : tyvarseq
+    ''' tyvarseq    : tyvar
                     | '(' tyvarseq_l ')'
     '''
     print(" TYVARSEQ ", len(p))
