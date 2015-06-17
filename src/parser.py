@@ -1,454 +1,497 @@
 from lexer import tokens
 import ply.yacc as yacc
-from ast import *
 
-start = 'exp'
+debug = 1
+tree = 1
 
-int_type    = TyCon([], "int", 0)
-real_type   = TyCon([], "real", 0)
-string_type = TyCon([], "string", 0)
-char_type   = TyCon([], "char", 0)
-record_type = TyCon([], "record", 0)
-unit_type   = TyCon([], "unit", 0, Unit())
-
-primative_tycon = {
-    'int'       : int_type,
-    'real'      : real_type,
-    'string'    : string_type,
-    'char'      : char_type
-}
-
-def p_cons_int(p):
-    'cons : INT_VAL'
-    print("int : ", p[1])
-    p[0] = Value(value=p[1], tycon=int_type)
-
-
-def p_cons_real(p):
-    'cons : REAL_VAL'
-    print("real : ", p[1])
-    p[0] = Value(value=p[1], tycon=real_type)
-
-
-def p_cons_str(p):
-    'cons : STRING_VAL'
-    print("string : ", p[1])
-    p[0] = Value(value=p[0], tycon=string_type)
-
-
-def p_cons_char(p):
-    'cons : CHAR_VAL'
-    print("char : ", p[1])
-    p[0] = Value(value=p[0], tycon=char_type)
-
-
-def p_vid(p):  ## diff
-    ''' vid : SYMBOLIC
-            | ALPHANUMERIC
+def p_program(p):
+    '''program : program ';' exp 
+                | program ';' dec
+                | empty
+                | exp
+                | dec
     '''
-    print(" VID : ", p[1])
-    p[0] = p[1]
+    if debug==1:
+        print('     PROGRAM')
+    if tree == 1: 
+        p[0]=['program']
+        for i in range(1,len(p)):
+            p[0].append(p[i])
+
+# (*---------------------------------------------------------------*)
+# (*                        expression                             *)
+# (*---------------------------------------------------------------*)
+
+def p_exp(p):
+    ''' exp : atexp
+            | exp SYMBOL exp
+            | exp ANDALSO exp
+            | exp ORELSE exp
+            | exp atexp
+            | exp ':' ty
+            | FN match
+            | CASE exp OF match
+            | IF exp THEN exp ELSE exp
+    '''
+    if debug==1:
+        print("exp")
+    if tree == 1:
+        p[0]=['exp']
+        for i in range(1,len(p)):
+            p[0].append(p[i])
+
+
+
+def p_atexp(p):
+    '''atexp : cons
+            | vid
+            | OP vid
+            | '{' '}'
+            | '{' exprow '}'
+            | LET dec IN exp END
+            | '(' expseq ')'
+            | '[' expseq ']'
+            | '[' ']'
+    '''
+    if debug==1:
+        print('atexp')
+    if tree == 1:
+        p[0]=['atexp']
+        for i in range(1,len(p)):
+            p[0].append(p[i])
+
+def p_expseq(p):
+    '''expseq : exp
+             | expseq ',' exp
+    '''
+    if debug==1:
+        print('atexp')
+    p[0]=['atexp']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+def p_exprow(p):
+    ''' exprow  : lab '=' exp
+                | lab '=' exp ',' exprow
+    '''
+    if debug==1:
+        print(" EXPROW ")
+    p[0]=['exprow']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+# (*---------------------------------------------------------------*)
+# (*                        declaration                            *)
+# (*---------------------------------------------------------------*)
+
+def p_dec(p):
+    ''' dec : VAL tyvarseq valbind
+            | VAL valbind
+            | FUN tyvarseq funbind
+            | FUN funbind
+            | TYPE typbind
+            | DATATYPE datbind
+    '''
+    # p[0]=('dec',p[1],p[2])
+    if debug==1:
+        print("dec")
+    p[0]=["dec"]
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_valbind(p):
+    ''' valbind : pat '=' exp
+                | pat '=' exp AND valbind
+                | REC valbind
+    '''
+    if debug==1:
+        print("valbind")
+    p[0]=['valbind']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_datbind(p):
+    '''datbind : tyvarseq tycon '=' conbind
+                | tyvarseq tycon '=' conbind AND datbind
+                | tycon '=' conbind 
+                | tycon '=' conbind AND datbind
+    '''
+    if debug==1:
+        print("datbind")
+    p[0]=['datbind']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_conbind(p):
+    ''' conbind : OP vid OF ty
+                | vid OF ty
+                | OP vid 
+                | vid
+                | OP vid OF ty '|' conbind
+                | vid OF ty '|' conbind
+                | OP vid '|' conbind
+                | vid '|' conbind
+    ''' 
+    if debug==1:
+        print("conbind")
+    p[0]=['conbind']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+
+def p_typbind(p):
+    ''' typbind : tyvarseq tycon '=' ty
+                | tyvarseq tycon '=' ty AND typbind
+                | tycon '=' ty
+                | tycon '=' ty AND typbind
+    '''
+    if debug==1:
+        print("typbind")
+    p[0]=['typbind']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_funbind(p):
+    '''funbind : funmatch AND funbind
+                | funmatch   
+    '''
+    if debug==1:
+        print("funbind")
+    p[0]=['funbind']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_funmatch(p):
+    ''' funmatch : clause
+                | clause '|' funmatch
+    '''
+    if debug==1:
+        print("funmatch")
+    p[0]=['funmatch']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_clause(p):
+    '''clause : atpats '=' exp
+            | atpats ':' ty '=' exp
+    '''
+    if debug==1:
+        print("clause")
+    p[0]=['clause']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+def p_match(p):
+    ''' match : pat LEAD_TO exp
+              | pat LEAD_TO exp '|' match
+    '''
+    if debug==1:
+        print("match")
+    p[0]=['match']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
 
 # (*---------------------------------------------------------------*)
 # (*                           type                                *)
 # (*---------------------------------------------------------------*)
 
-def p_tycon(p):
-    ''' tycon : vid
-    '''
-    print(" TYCON : ", p[1])
-    p[0] = p[1]
-
-
-def p_tyvar(p):
-    ''' tyvar : "'" vid
-    '''
-    p[0] = "'" + p[2]
-    print(" TYVAR : ", p[0])
-
-
-def p_lab(p): 
-    ''' lab : vid
-            | INT_VAL
-    '''
-    try:
-        p[0] = int(p[1])
-    except ValueError:
-        p[0] = p[1]
-
-    print(" LAB : ", p[0])
-
-
-# atomic pattern
-def p_atpat_wc(p):
-    """atpat    : '_'
-                | cons """
-    if p[1] == '_':
-        p[0] = Pattern(Value(wildcard=True))
-    else:
-        p[0] = Pattern(p[1])
-
-
-def p_atpat_id(p):
-    """atpat    : vid
-                | OP vid"""
-    if len(p) == 2:
-        p[0] = Pattern(Value(id=p[1]))
-    else:
-        p[0] = Pattern(Value(id=p[2], OP=False))
-
-
-def p_atpat_r(p):
-    """atpat    : '{' '}'
-                | '{' patrow '}' """
-    if len(p) == 3:
-        p[0] = Pattern(Unit())
-    else:
-        p[0] = Pattern(Value(value=p[2], tycon=record_type))
-
-
-def p_atpat(p):
-    " atpat   : '(' pat ')' "
-    p[0] = p[2]
-
-
-def p_patrow_seq(p):
-    ''' patrow_seq   : lab '=' pat
-                    | lab '=' pat ',' patrow
-    '''
-    if len(p) == 4:
-        p[0] = Pattern(RecordItem(lab=p[1], value=p[3].value))
-    else:
-        p[0] = [ Pattern(RecordItem(lab=p[1], value=p[3].value)) ] + p[5]
-
-
-def p_patrow(p):
-    ''' patrow  : SUSPENSION
-                | patrow_seq
-    '''
-    if p[1] == "...":
-        p[0] = [RecordItem(None, None)]
-    else:
-        p[0] = p[1]
-
-
-def p_pat(p):
-    ''' pat : atpat
-            | OP vid atpat
-            | vid atpat
-            | pat vid pat
-            | pat ':' ty
-    '''
-    print(" PAT ")
-    if len(p) == 2:
-        p[0] = p[1]
-    elif p[1] == "op":
-        p[0] = Pattern(Value(id=p[2], value=p[3].value, OP=True))
-    elif len(p) == 3:
-        p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
-    elif p[2] == ':':
-        p[1].value.tycon = p[3]
-        p[0] = Pattern(p[1].value)
-    else:
-        p[0] = Pattern(Value(value=[RecordItem(1, p[1].value), RecordItem(2, p[3].value)], vcon=p[2]))
-
-
-
 def p_ty(p):
-    ''' ty  : tyvar
+    ''' ty  : ty POINT_TO ty
+            | aty
+            | ty '*' ty
+    '''
+    if debug==1:
+        print("ty")
+    p[0]=['ty']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+def p_aty(p):
+    '''aty : tyvar
             | '{' '}'
             | '{' tyrow '}'
-            | tyseq tycon
-            | ty POINT_TO ty
+            | aty tycon
+            | '(' tyseq_l ')' tycon
+            | tycon
+            | '(' ty ')'
     '''
-    print(" TY ")
-    if len(p) == 1:
-        p[0] = p[1]
-    elif p[1] == '{':
-        if len(p) == 3:
-            p[0] = unit_type
-        else:
-            p[0] = p[2]
-    elif len(p) == 3:
-        p[0] = TyCon(p[1], p[2], len(p[1]))
-    else:
-        p[0] = TyCon(type=(p[1], p[3]))
+    if debug==1:
+        print("aty")
+    p[0]=['aty']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
-# | '(' ty ')'
+
+# def p_tyseq(p):
+#     '''tyseq : aty
+#             | '(' tyseq_l ')'
+#     '''
+#     if debug==1:
+#         print("tyseq")
+#     p[0]=['tyseq']
+#     for i in range(1,len(p)):
+#         p[0].append(p[i])
+
+
+def p_tyseq_l(p):
+    '''tyseq_l : ty ',' ty
+            | tyseq_l ',' ty
+    '''
+    if debug==1:
+        print("tyseq_l")
+    p[0]=['tyseq_l']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
 def p_tyrow(p):
     ''' tyrow   : lab ':' ty
                 | lab ':' ty ',' tyrow
     '''
-    print(" TYROW : ", len(p))
-    if len(p) == 4:
-        p[0] = TyCon(type={p[1] : p[3]})
-    else:
-        p[0] = p[5]
-        p[0].type[p[1]] = p[3]
+    if debug==1:
+        print(" tyrow ")
+    p[0]=['tyrow']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
-
-def p_tyseq_e(p):
-    ' tyseq : empty '
-    print(" TYSEQ EMPTY ")
-    p[0] = []
-
-def p_tyseq(p):
-    ''' tyseq   : ty
-                | '(' tyseq_l ')'
+def p_tycon(p):
+    ''' tycon : vid
     '''
-    print(" TYSEQ ", len(p))
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = p[2]
+    if debug==1:
+        print(" tycon ")
+    p[0]=['tycon']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
+# def p_tytup(p):
+#     '''tytup : ty
+#              | tytup '*' ty
+#     '''
+#     print('tytup')
 
-def p_tyseq_l(p):
-    ''' tyseq_l : ty
-                | ty ',' tyseq_l
+# (*---------------------------------------------------------------*)
+# (*                             pattern                           *)
+# (*---------------------------------------------------------------*)
+
+def p_pat(p):
+    ''' pat : atpat
+            | OP vid atpat
+            | pat SYMBOLIC pat
+            | vid atpat
+            | pat ':' ty
     '''
-    print(" TYSEQ_LIST ")
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[3]
+    if debug==1:
+        print("pat")
+    p[0]=['pat']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
-#
-# Expressions and Declaration
-#
+def p_atpats(p):
+    '''atpats : atpat 
+                | atpats atpat
+    '''
+    if debug==1:
+        print("atpats")
+    p[0]=['atpats']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-
-def p_atexp_c(p):
-    ' atexp   : cons '
-    p[0] = Expression( "Constant", p[1] )
-
-
-def p_atexp_r(p):
-    ''' atexp   : '{' '}'
-                | '{' exprow '}' '''
-
-    if len(p) == 3:
-        p[0] = Expression( "Record", [RecordItem(None, None)] )
-    else:
-        p[0] = Expression( "Record", p[2] )
-
-def p_atexp(p):
-    ''' atexp   : vid
+def p_atpat(p):
+    ''' atpat   : '_'
+                | cons
+                | vid
                 | OP vid
-                | LET dec IN exp END
-                | '(' exp ')'
+                | '(' patseq ')'
+                | '{' '}'
+                | '{' patrow '}'
+                | '[' ']'
+                | '[' patseq ']'
     '''
-    if len(p) == 2:
-        p[0] = Expression( "App", [ Value(id=p[1]) ] )
-    elif len(p) == 3:
-        p[0] = Expression( "App", [ Value(id=p[2], OP=True) ] )
-    elif len(p) == 6:
-        p[0] = Expression( "Let", p[2], p[4])
-    else:
-        p[0] = p[2]
+    if debug==1:
+        print("atpat")
+    p[0]=['atpat']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-def p_exprow(p):
-    ''' exprow  : lab '=' exp
-                | lab '=' exp ',' exprow
+def p_patseq(p):
+    '''patseq : pat
+            | patseq ',' pat
     '''
-    print(" EXPROW ")
-    if len(p) == 4:
-        p[0] = {p[1] : p[3]}
-    else:
-        p[0] = p[5]
-        p[0][p[1]] = p[3]
+    if debug==1:
+        print("patseq")
+    p[0]=['patseq']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-def p_exp(p):
-    ''' exp : app_exp
-            | exp ':' ty
-            | FN match
+def p_patrow(p):
+    ''' patrow  : SUSPENSION
+                | lab '=' pat 
+                | lab '=' pat ',' patrow
     '''
-    print(" EXP ")
-    if len(p) == 2:
-        p[0] = Expression( "App", p[1] )
-    elif len(p) == 3:
-        p[0] = Expression( "Fn", p[2] )
-    elif p[2] == ':':
-        p[0] = Expression( "Constraint", p[1], p[3] )
+    if debug==1:
+        print("patrow")
+    p[0]=['patrow']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-def p_app_exp(p):
-    ''' app_exp : atexp app_exp1
+
+# (*---------------------------------------------------------------*)
+# (*                           other                               *)
+# (*---------------------------------------------------------------*)
+
+def p_cons(p):
+    '''cons : INT_VAL
+            | REAL_VAL
+            | STRING_VAL
+            | CHAR_VAL'''
+    # p[0]="CONS"
+    if debug==1:
+        print('cons')
+    p[0]=['cons']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+# def p_id(p):
+#     '''id : ALPHANUMERIC
+#          | SYMBOLIC
+#     '''
+#     p[0]=['id']
+#     for i in range(1,len(p)):
+#         p[0].append(p[i])
+
+
+def p_vid(p):
+    '''vid : ALPHANUMERIC
     '''
-    # | vid app_exp1
-    p[0] = [ p[1] ] + p[2]
+    if debug==1:
+        print('vid')
+    p[0]=['vid']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-def p_app_exp1(p):
-    ''' app_exp1    : empty
-                    | app_exp
+def p_lab(p):
+    '''lab : ALPHANUMERIC
+            | INT_VAL
     '''
-    p[0] = p[1]
+    if debug==1:
+        print('lab')
+    p[0]=['lab']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-def p_match(p):
-    ''' match   : mrule
-                | mrule '|' match
+def p_tyvar(p):
+    ''' tyvar : "'" ALPHANUMERIC
     '''
-    print(" MATCH ")
-    if len(p) == 2:
-        p[0] = [ p[1] ]
-    else:
-        p[0] = [ p[1] ] + p[3]
+    if debug==1:
+        print("tyvar")
+    p[0]=['tyvar']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
-
-def p_mrule(p):
-    ''' mrule : pat LEAD_TO exp
-    '''
-    print(" MRULE ")
-    p[0] = (p[1], p[3])
-
-
-def p_decs(p):
-    ''' decs    : empty
-                | dec decs
-                | dec ';' decs
-    '''
-    print(" DECS ")
-    if len(p) == 2:
-        p[0] = []
-    elif len(p) == 3:
-        p[0] = [ p[1] ] + p[2]
-    else:
-        p[0] = [ p[1] ] + p[3]
-
-
-def p_dec(p):
-    ''' dec : VAL tyvarseq valbind
-            | TYPE typbind
-            | DATATYPE datbind
-    '''
-    print(" DEC ", p[1])
-    if  p[1] == "val":
-        p[0] = (p[1], p[2], p[3])
-    elif p[1] == "type":
-        p[0] = (p[1], p[2])
-    else:
-        p[0] = (p[1], p[2])
-
-
-def p_valbind(p):
-    ''' valbind : pat '=' exp
-                | pat '=' exp AND valbind
-                | REC fvalbind
-    '''
-    print(" VALBIND ")
-    if len(p) == 3:
-        p[0] = p[2]
-    elif len(p) == 4:
-        p[0] = [ (p[1], p[3]) ]
-    else:
-        p[0] = [ (p[1], p[3]) ] + p[5]
-
-
-def p_fvalbind(p):
-    ''' fvalbind    : pat '=' FN match
-                    | pat '=' FN match AND fvalbind
-    '''
-    if len(p) == 5:
-        p[0] = [ (p[1], p[3]) ]
-    else:
-        p[0] = [ (p[1], p[3]) ] + p[5]
-
-
-def p_typbind(p):
-    ''' typbind : tyvarseq tycon '=' ty
-                | tyvarseq tycon '=' ty AND typbind
-    '''
-    print(" TYPBIND ")
-    if len(p) == 5:
-        p[0] = [ typbind(p[1], p[2], p[3]) ]
-    else:
-        p[0] = [ typbind(p[1], p[2], p[3]) ] + p[6]
-
-
-def p_datbind(p):
-    ''' datbind : tyvarseq tycon '=' conbind
-    '''
-    #  | tyvarseq tycon '=' conbind AND datbind
-    print(" DATBIND ")
-    if len(p) == 5:
-        p[0] = [ datbind(p[1], p[2], p[3]) ]
-    else:
-        p[0] = [ datbind(p[1], p[2], p[3]) ] + p[6]
-
-
-def p_conbind(p):
-    ''' conbind : vid connext
-                | vid OF ty connext
-    '''
-    print(" CONBIND ")
-    if len(p) == 3:
-        p[0] = [ (Value(id = p[1], OP=False), unit_type) ] + p[2]
-    else:
-        p[0] = [ (Value(id = p[1], OP=False) p[3]) ] + p[4]
-
-
-def p_conbind_op(p):
-    ''' conbind : OP vid connext
-                | OP vid OF ty connext
-    '''
-    print(" CONBIND ")
-    if len(p) == 4:
-        p[0] = [ (Value(id = p[1], OP=True), unit_type) ] + p[2]
-    else:
-        p[0] = [ (Value(id = p[1], OP=True) p[3]) ] + p[4]
-
-
-def p_connext(p):
-    ''' connext : empty
-                | '|' conbind
-    '''
-    print(" CONNEXT ")
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = p[2]
-
-
-def p_tyvarseq_e(p):
-    ' tyvarseq    : empty '
-    p[0] = p[1]
 
 
 def p_tyvarseq(p):
-    ''' tyvarseq    : tyvarseq
-                    | '(' tyvarseq_l ')'
+    ''' tyvarseq  :  tyvar
+                | '(' tyvarseq_l ')'
     '''
-    print(" TYVARSEQ ", len(p))
-    if len(p) == 2:
-        p[0] = [ p[1] ]
-    else:
-        p[0] =  p[2]
+    if debug==1:
+        print("tyvarseq")
+    p[0]=['tyvarseq']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
 
 
 def p_tyvarseq_l(p):
     ''' tyvarseq_l  : tyvar
                     | tyvar ',' tyvarseq_l
     '''
-    print(" TYVARSEQ_L ")
-    if len(p) == 2:
-        p[0] = [ p[1] ]
-    else:
-        p[0] = [ p[1] ] + p[3]
+    if debug==1:
+        print(" tyvarseq_l ")
+    p[0]=['tyvarseq_l']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
+
+
+
+def p_SYMBOL(p):
+    '''SYMBOL : '!' 
+                | '%' 
+                | '&' 
+                | '$' 
+                | '#' 
+                | '+' 
+                | '-' 
+                | '/' 
+                | '='
+                | ':' 
+                | '<' 
+                | '>' 
+                | '?' 
+                | '@' 
+                | '|' 
+                | '~' 
+                | '`' 
+                | '^' 
+                | '\' 
+                | '*'
+                | SYMBOLIC
+    '''
+    if debug==1:
+        print(" symbol ")
+    p[0]=['symbol']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
 def p_empty(p):
     'empty : '
-    print(" EMPTY ")
-    p[0] = []
+    if debug==1:
+        print(" EMPTY ")
+    p[0]=['EMPTY']
+    for i in range(1,len(p)):
+        p[0].append(p[i])
 
 
-parser = yacc.yacc(debug=True)
+
+# (*---------------------------------------------------------------*)
+# (*                              end                              *)
+# (*---------------------------------------------------------------*)
 
 
+s= '''
+fun f(xs:int)= 
+    case xs of 
+    1 => 1
+    |2 => 2 
+'''
+
+
+def printTree(l,level=0):
+    print('   '*level,l[0])
+    for i in range(1,len(l)):
+        if type(l[i])==type([]):
+            printTree(l[i],level+1)
+        else:
+            print('   '*(level+1),l[i])
+
+if __name__=='__main__':
+    parser=yacc.yacc(debug=True)
+    printTree(parser.parse(s))
