@@ -21,7 +21,7 @@ primative_tycon = {
 def p_cons_int(p):
     'cons : INT_VAL'
     print("int : ", p[1])
-    p[0] = Value(value=[1], tycon=int_type)
+    p[0] = Value(value=p[1], tycon=int_type)
 
 
 def p_cons_real(p):
