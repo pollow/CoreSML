@@ -242,11 +242,11 @@ def p_atexp(p):
                 | '(' exp ')'
     '''
     if len(p) == 2:
-        p[0] = Expression( "App", [ Value(id=p[1]) ] )
+        p[0] = Expression( "App", ( Value(id=p[1]) ) )
     elif len(p) == 3:
-        p[0] = Expression( "App", [ Value(id=p[2], OP=True) ] )
+        p[0] = Expression( "App", ( Value(id=p[2], OP=True) ) )
     elif len(p) == 6:
-        p[0] = Expression( "Let", p[2], p[4])
+        p[0] = Expression( "Let", ( p[2], p[4] ) )
     else:
         p[0] = p[2]
 
@@ -274,7 +274,7 @@ def p_exp(p):
     elif len(p) == 3:
         p[0] = Expression( "Fn", p[2] )
     elif p[2] == ':':
-        p[0] = Expression( "Constraint", p[1], p[3] )
+        p[0] = Expression( "Constraint", ( p[1], p[3] ) )
 
 
 def p_app_exp(p):
@@ -391,7 +391,7 @@ def p_conbind(p):
     if len(p) == 3:
         p[0] = [ (Value(id = p[1], OP=False), unit_type) ] + p[2]
     else:
-        p[0] = [ (Value(id = p[1], OP=False) p[3]) ] + p[4]
+        p[0] = [ (Value(id = p[1], OP=False), p[3]) ] + p[4]
 
 
 def p_conbind_op(p):
@@ -402,7 +402,7 @@ def p_conbind_op(p):
     if len(p) == 4:
         p[0] = [ (Value(id = p[1], OP=True), unit_type) ] + p[2]
     else:
-        p[0] = [ (Value(id = p[1], OP=True) p[3]) ] + p[4]
+        p[0] = [ (Value(id = p[1], OP=True), p[3]) ] + p[4]
 
 
 def p_connext(p):
