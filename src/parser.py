@@ -21,7 +21,7 @@ primative_tycon = {
 def p_cons_int(p):
     'cons : INT_VAL'
     print("int : ", p[1])
-    p[0] = Value(value=[1], tycon=int_type)
+    p[0] = Value(value=p[1], tycon=int_type)
 
 
 def p_cons_real(p):
@@ -42,16 +42,16 @@ def p_cons_char(p):
     p[0] = Value(value=p[0], tycon=char_type)
 
 
-def p_vid(p):
+def p_vid(p):  ## diff
     ''' vid : SYMBOLIC
             | ALPHANUMERIC
     '''
     print(" VID : ", p[1])
     p[0] = p[1]
 
-#
-# Types and Patterns
-#
+# (*---------------------------------------------------------------*)
+# (*                           type                                *)
+# (*---------------------------------------------------------------*)
 
 def p_tycon(p):
     ''' tycon : vid
@@ -67,7 +67,7 @@ def p_tyvar(p):
     print(" TYVAR : ", p[0])
 
 
-def p_lab(p):
+def p_lab(p): 
     ''' lab : vid
             | INT_VAL
     '''

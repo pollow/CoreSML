@@ -72,7 +72,7 @@ literals = [ '(', ')', '[', ']', '{', '}', ',', ';', '_', ':', '|', '=', '#', \
              '+', '-', '/', '*', '@', '!', '$', '<', '>', '^', '~', '\'', "'"]
 
 def t_ALPHANUMERIC(t):
-    r'([a-zA-Z][\w\'_]*)|(\'[\w\'_]*)'
+    r'([a-zA-Z][a-zA-Z0-9\'_]*)'
     t.type = reserved.get(t.value,'ALPHANUMERIC')
     return t
 
