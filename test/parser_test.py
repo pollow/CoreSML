@@ -15,6 +15,8 @@ class ParserTest(unittest.TestCase):
         let val x : int = 1 val y : int = 3 in x + y end
         ''')
         print()
+        parser.parse('val x = "abc"')
+        parser.parse('val x = #"c"')
         self.assertEqual(True, True)
 
     def test_something(self):
