@@ -6,20 +6,6 @@ start = 'dec'
 
 debug = 1
 
-int_type    = TyCon([], "int", 0, 'int')
-real_type   = TyCon([], "real", 0, 'real')
-string_type = TyCon([], "string", 0, 'string')
-char_type   = TyCon([], "char", 0, 'char')
-record_type = TyCon([], "record", 0, None)
-unit_type   = TyCon([], "unit", 0, Unit())
-
-primative_tycon = {
-    'int'       : int_type,
-    'real'      : real_type,
-    'string'    : string_type,
-    'char'      : char_type
-}
-
 def p_program(p):
     '''program  : program ';' exp 
                 | program ';' dec
@@ -166,12 +152,15 @@ def p_pat(p):
     elif len(p) == 3:
         p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
     elif p[2] == ':':
-        print("1 : ", p[1], " 2 : ", p[1].value, " 3: ", p[3])
         p[1].value.tycon = p[3]
-        print("1 : ", p[1], " 2 : ", p[1].value, " 3: ", p[3])
+        p[1].value.dict['tycon'] = p[3]
         p[0] = Pattern(p[1].value)
     else:
-        p[0] = Pattern(Value(value=[RecordItem(1, p[1].value), RecordItem(2, p[3].value)], vcon=p[2]))
+        p[0] = Pattern( Value(
+                value=Value(
+                    value=[RecordItem(1, p[1].value), RecordItem(2, p[3].value)],
+                    tycon=record_type),
+                vcon=p[2]))
 
 
 # (*---------------------------------------------------------------*)
@@ -194,7 +183,10 @@ def p_aty_con(p):
             | '(' tyseq_l ')' tycon
     '''
     if len(p) == 2:
-        p[0] = TyCon(tyvar = [], name = p[1])
+        if p[1] in primative_tycon:
+            p[0] = primative_tycon[p[1]]
+        else:
+            p[0] = TyCon(tyvar = [], name = p[1])
     elif len(p) == 3:
         p[0] = TyCon([p[1]], p[2], 1)
     else:
@@ -266,9 +258,9 @@ def p_atexp(p):
                 | '(' exp ')'
     '''
     if len(p) == 2:
-        p[0] = Expression( "App", ( Value(id=p[1]) ) )
+        p[0] = Expression( "App", Value(id=p[1]) )
     elif len(p) == 3:
-        p[0] = Expression( "App", ( Value(id=p[2], OP=True) ) )
+        p[0] = Expression( "App", Value(id=p[2], OP=True) )
     elif len(p) == 6:
         p[0] = Expression( "Let", ( p[2], p[4] ) )
     else:
@@ -365,17 +357,13 @@ def p_decs(p):
 
 
 def p_dec(p):
-    ''' dec : VAL tyvarseq valbind
-            | VAL valbind
+    ''' dec : VAL valbind
             | TYPE typbind
             | DATATYPE datbind
     '''
     print(" DEC ", p[1])
     if  p[1] == "val":
-        if len(p) == 4:
-            p[0] = Declaration(p[1], (p[2], p[3]))
-        else:
-            p[0] = Declaration(p[1], ([], p[2]))
+            p[0] = Declaration(p[1], p[2])
     elif p[1] == "type":
         p[0] = Declaration(p[1], p[2])
     else:
@@ -389,19 +377,15 @@ def p_valbind(p):
     print(" VALBIND ")
     if len(p) == 3:
         p[0] = p[2]
+        p[0].rec = True
     elif len(p) == 4:
-        p[0] = [ (p[1], p[3]) ]
-    else:
-        p[0] = [ (p[1], p[3]) ] + p[5]
+        p[0] = valbind(p[1], p[3])
 
 
 def p_fvalbind(p):
     ''' fvalbind    : pat '=' FN match
     '''
-    if len(p) == 5:
-        p[0] = [ (p[1], p[3]) ]
-    else:
-        p[0] = [ (p[1], p[3]) ] + p[5]
+    p[0] = (p[1], p[3])
 
 
 def p_typbind(p):
@@ -410,13 +394,9 @@ def p_typbind(p):
     '''
     print(" TYPBIND ")
     if len(p) == 4:
-        p[0] = [ typbind([], p[2], p[3]) ]
+        p[0] = typbind([], p[2], p[3])
     elif len(p) == 5:
-        p[0] = [ typbind(p[1], p[2], p[3]) ]
-    elif len(p) == 6:
-        p[0] = [ typbind([], p[2], p[3]) ] + p[6]
-    else:
-        p[0] = [ typbind(p[1], p[2], p[3]) ] + p[6]
+        p[0] = typbind(p[1], p[2], p[3])
 
 
 def p_datbind(p):
@@ -467,11 +447,6 @@ def p_connext(p):
 # (*---------------------------------------------------------------*)
 # (*                           type                                *)
 # (*---------------------------------------------------------------*)
-
-
-# def p_tyvarseq_e(p):
-#     ' tyvarseq    : empty '
-#     p[0] = p[1]
 
 
 def p_tyvarseq(p):
