@@ -2,6 +2,36 @@ __author__ = 'Deus'
 
 import unittest
 from parser import parser
+from ast import *
+
+def desent(level, x):
+    if type(x) == tuple:
+        print("  " * level, end="")
+        print(x)
+        for y in x:
+            if y:
+                desent(level + 1, y)
+
+    elif type(x) == list:
+        for y in x:
+            if y:
+                desent(level + 1, y)
+
+    elif type(x) in (TyCon, TypeExpression, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, Constant, RecordItem, Unit, MRule, Match):
+        print("  " * level, end="")
+        # x.show()
+        print(x)
+        for y in x.dict.values():
+            if y:
+                desent(level + 1, y)
+                # if type(x) in (list, tuple):
+                #     print(x)
+                #     for y in x:
+                #         desent(level + 1, y)
+
+
+if __name__ == "__main__":
+    x = parser.parse(input())
 
 
 class ParserTest(unittest.TestCase):
@@ -10,13 +40,9 @@ class ParserTest(unittest.TestCase):
 #         self.assertEqual(parser.parse("1.1"), 1.1)
 #         self.assertEqual(parser.parse('"asdf"'), "asdf")
 #         self.assertEqual(parser.parse('#"a"'), 'a')
-    def test_pattern(self):
-        parser.parse('''
-        let val x : int = 1 val y : int = 3 in x + y end
-        ''')
-        print()
-        parser.parse('val x = "abc"')
-        parser.parse('val x = #"c"')
+    def test_ast(self):
+        x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
+        desent(0, x)
         self.assertEqual(True, True)
 
     def test_something(self):

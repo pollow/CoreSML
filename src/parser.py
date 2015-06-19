@@ -2,13 +2,15 @@ from lexer import tokens
 import ply.yacc as yacc
 from ast import *
 
+start = 'dec'
+
 debug = 1
 
-int_type    = TyCon([], "int", 0)
-real_type   = TyCon([], "real", 0)
-string_type = TyCon([], "string", 0)
-char_type   = TyCon([], "char", 0)
-record_type = TyCon([], "record", 0)
+int_type    = TyCon([], "int", 0, 'int')
+real_type   = TyCon([], "real", 0, 'real')
+string_type = TyCon([], "string", 0, 'string')
+char_type   = TyCon([], "char", 0, 'char')
+record_type = TyCon([], "record", 0, None)
 unit_type   = TyCon([], "unit", 0, Unit())
 
 primative_tycon = {
@@ -112,7 +114,7 @@ def p_atpat_id(p):
     if len(p) == 2:
         p[0] = Pattern(Value(id=p[1]))
     else:
-        p[0] = Pattern(Value(id=p[2], OP=False))
+        p[0] = Pattern(Value(id=p[2], OP=True))
 
 
 def p_atpat_r(p):
@@ -164,7 +166,9 @@ def p_pat(p):
     elif len(p) == 3:
         p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
     elif p[2] == ':':
+        print("1 : ", p[1], " 2 : ", p[1].value, " 3: ", p[3])
         p[1].value.tycon = p[3]
+        print("1 : ", p[1], " 2 : ", p[1].value, " 3: ", p[3])
         p[0] = Pattern(p[1].value)
     else:
         p[0] = Pattern(Value(value=[RecordItem(1, p[1].value), RecordItem(2, p[3].value)], vcon=p[2]))
@@ -179,6 +183,10 @@ def p_ty(p):
     ''' ty  : aty
             | ty POINT_TO ty
     '''
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = TyCon([], None, 0, (p[1], p[3]))
 
 def p_aty_con(p):
     ''' aty : tycon
@@ -221,22 +229,6 @@ def p_tyrow(p):
     else:
         p[0] = p[5]
         p[0].type[p[1]] = p[3]
-
-
-# def p_tyseq_e(p):
-#     ' tyseq : empty '
-#     print(" TYSEQ EMPTY ")
-#     p[0] = []
-# 
-# def p_tyseq(p):
-#     ''' tyseq   : ty
-#                 | '(' tyseq_l ')'
-#     '''
-#     print(" TYSEQ ", len(p))
-#     if len(p) == 2:
-#         p[0] = [p[1]]
-#     else:
-#         p[0] = p[2]
 
 
 def p_tyseq_l(p):
@@ -381,13 +373,13 @@ def p_dec(p):
     print(" DEC ", p[1])
     if  p[1] == "val":
         if len(p) == 4:
-            p[0] = (p[1], p[2], p[3])
+            p[0] = Declaration(p[1], (p[2], p[3]))
         else:
-            p[0] = (p[1], [], p[2])
+            p[0] = Declaration(p[1], ([], p[2]))
     elif p[1] == "type":
-        p[0] = (p[1], p[2])
+        p[0] = Declaration(p[1], p[2])
     else:
-        p[0] = (p[1], p[2])
+        p[0] = Declaration(p[1], p[2])
 
 
 def p_valbind(p):
