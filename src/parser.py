@@ -384,7 +384,6 @@ def p_dec(p):
 
 def p_valbind(p):
     ''' valbind : pat '=' exp
-                | pat '=' exp AND valbind
                 | REC fvalbind
     '''
     print(" VALBIND ")
@@ -398,7 +397,6 @@ def p_valbind(p):
 
 def p_fvalbind(p):
     ''' fvalbind    : pat '=' FN match
-                    | pat '=' FN match AND fvalbind
     '''
     if len(p) == 5:
         p[0] = [ (p[1], p[3]) ]
@@ -408,9 +406,7 @@ def p_fvalbind(p):
 
 def p_typbind(p):
     ''' typbind : tyvarseq tycon '=' ty
-                | tyvarseq tycon '=' ty AND typbind
                 | tycon '=' ty
-                | tycon '=' ty AND typbind
     '''
     print(" TYPBIND ")
     if len(p) == 4:
@@ -427,7 +423,6 @@ def p_datbind(p):
     ''' datbind : tyvarseq tycon '=' conbind
                 | tycon '=' conbind
     '''
-    #  | tyvarseq tycon '=' conbind AND datbind
     print(" DATBIND ")
     if len(p) == 4:
         p[0] = [ datbind([], p[2], p[3]) ]
