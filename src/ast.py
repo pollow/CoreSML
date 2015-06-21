@@ -96,11 +96,13 @@ class Declaration :
 
 
 class Value :
-    def __init__(self, id = None, value = None, tycon = None, vcon = None, wildcard = False, OP = False):
+    def __init__(self, id = None, value = None, tycon = None, vcon = None, wildcard = False, op = False):
         self.id = id
         self.value = value
         self.tycon = tycon # A TyCon instance
         self.vcon = vcon
+        self.op = op
+        self.wildcard = wildcard
         self.dict = locals()
         self.dict.pop('self', None)
 
@@ -238,13 +240,19 @@ class valbind:
         :return: bool
         """
         self.pat.calcType(env)
+        self.pat.update()
         self.exp.checkType(env)
-        return self.pat.type == self.exp.type
+        print("Valbind: ", self.pat.value)
+        if self.pat.type == self.exp.type:
+            print("valbind checked: ", self.pat.value.id)
+            env[self.pat.value.id] = self.pat.value
+            return True
+        else:
+            return False
 
 
 class datbind:
     def __init__(self, tyvars, tycon, vcon):
-        # vcon = [ VCon ]
         self.type = tycon
         self.vcon = vcon
         self.tyvars = tyvars
@@ -286,32 +294,37 @@ class Expression:
             x.checkType(env)
             print(x)
 
-        return True
+        return applist[0].type
 
     def update(self):
         for x in self.dict:
             self.dict[x] = getattr(self, x)
 
     def checkType(self, env):
+        # print(self)
         cls = self.cls
         if cls == "App":
             r = self.reg
             """ :type : list[exp] | Value """
             if type(r) == Value:
-                print(r)
-                self.type = r.calcType(env)
+                print("R: ", r)
+                self.type = env[r.id].calcType(env)# r.calcType(env)
                 self.update()
             else:
                 # don't care about op
                 # function should be the first argument
                 self.type = self.calcAppList(r, env)
                 self.update()
-                return True
         elif cls == "Let":
             decs, exp = self.reg
             for x in decs:
                 x.checkType(env)
             exp.checkType(env)
+            self.type = exp.type
+        elif cls == "Constant":
+            r = self.reg
+            """ :type : Value """
+            self.type = r.calcType(env)
 
 
 

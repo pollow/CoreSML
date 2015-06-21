@@ -100,7 +100,7 @@ def p_atpat_id(p):
     if len(p) == 2:
         p[0] = Pattern(Value(id=p[1]))
     else:
-        p[0] = Pattern(Value(id=p[2], OP=True))
+        p[0] = Pattern(Value(id=p[2], op=True))
 
 
 def p_atpat_r(p):
@@ -148,12 +148,12 @@ def p_pat(p):
     if len(p) == 2:
         p[0] = p[1]
     elif p[1] == "op":
-        p[0] = Pattern(Value(id=p[2], value=p[3].value, OP=True))
+        p[0] = Pattern(Value(id=p[2], value=p[3].value, op=True))
     elif len(p) == 3:
         p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
     elif p[2] == ':':
         p[1].value.tycon = p[3]
-        p[1].value.dict['tycon'] = p[3]
+        p[1].value.update()
         p[0] = Pattern(p[1].value)
     else:
         p[0] = Pattern( Value(
@@ -260,7 +260,7 @@ def p_atexp(p):
     if len(p) == 2:
         p[0] = Expression( "App", Value(id=p[1]) )
     elif len(p) == 3:
-        p[0] = Expression( "App", Value(id=p[2], OP=True) )
+        p[0] = Expression( "App", Value(id=p[2], op=True) )
     elif len(p) == 6:
         p[0] = Expression( "Let", ( p[2], p[4] ) )
     else:
@@ -418,9 +418,9 @@ def p_conbind(p):
     '''
     print(" CONBIND ")
     if len(p) == 3:
-        p[0] = [ (Value(id = p[1], OP=False), unit_type) ] + p[2]
+        p[0] = [ (Value(id = p[1], op=False), unit_type) ] + p[2]
     else:
-        p[0] = [ (Value(id = p[1], OP=False), p[3]) ] + p[4]
+        p[0] = [ (Value(id = p[1], op=False), p[3]) ] + p[4]
 
 
 def p_conbind_op(p):
@@ -429,9 +429,9 @@ def p_conbind_op(p):
     '''
     print(" CONBIND ")
     if len(p) == 4:
-        p[0] = [ (Value(id = p[1], OP=True), unit_type) ] + p[2]
+        p[0] = [ (Value(id = p[1], op=True), unit_type) ] + p[2]
     else:
-        p[0] = [ (Value(id = p[1], OP=True), p[3]) ] + p[4]
+        p[0] = [ (Value(id = p[1], op=True), p[3]) ] + p[4]
 
 
 def p_connext(p):

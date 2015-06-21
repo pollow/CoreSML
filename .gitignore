@@ -62,3 +62,6 @@ target/
 # PLY
 parsetab.py
 parser.out
+
+# Vim
+*.swp
