@@ -1,8 +1,9 @@
+class SMLSyntaxError:
+    def __init__(self, s):
+        self.s = s
 
-
-class TypeExpression :
-    def __init__(self):
-        pass
+    def __str__(self):
+        return self.s
 
 
 class Unit:
@@ -49,11 +50,24 @@ class TyCon:
     def __str__(self):
         return self.dict.__str__()
 
+    def checkType(self):
+        # TODO tyvars support
+        if self.name in primative_tycon: # primative type
+            return self.name
+        elif self.name == 'unit': # unit
+            return self.name
+        elif self.name in ['record', 'fn'] : # record or fn
+            return self.type
+        else: # datatype or alias
+            # TODO not sure now
+            return self.name
+
+
 int_type    = TyCon([], "int", 0, 'int')
 real_type   = TyCon([], "real", 0, 'real')
 string_type = TyCon([], "string", 0, 'string')
 char_type   = TyCon([], "char", 0, 'char')
-record_type = TyCon([], "record", 0, None)
+# record_type = TyCon([], "record", 0, None)
 unit_type   = TyCon([], "unit", 0, Unit())
 
 primative_tycon = {
@@ -117,25 +131,35 @@ class Value :
             self.dict[x] = getattr(self, x)
 
     def calcType(self, env):
-        name = self.tycon.name
-        if name in primative_tycon:
-            return name
-        elif name == 'unit':
-            return Unit()
-        else: # records and user defined datatypes are all records
-            l = self.value
-            """:type : list[RecordItem]"""
-            if type(l) == list:
-                t = {}
-                for x in l:
-                    assert(type(x) == RecordItem)
-                    t[x.lab] = x.value
-
-                return t
-            else:
-                # get a way to check if it is a datatype
-                # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
+        """
+        :param env: dict[string, Value]
+        :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
+        """
+        if type(self.tycon) == tuple:
+            # A function call
+            rtn = (self.tycon[0].checkType(), self.tycon[1].checkType())
+            print("FN: ", rtn)
+            return rtn #(self.tycon[0].checkType(), self.tycon[1].checkType())
+        else:
+            name = self.tycon.name
+            if name in primative_tycon:
                 return name
+            elif name == 'unit':
+                return name
+            else: # records and user defined datatypes are all records
+                l = self.value
+                """:type : list[RecordItem]"""
+                if type(l) == list:
+                    t = {}
+                    for x in l:
+                        assert(type(x) == RecordItem)
+                        t[x.lab] = x.value
+
+                    return t
+                else:
+                    # get a way to check if it is a datatype
+                    # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
+                    return name
 
 
 class Pattern :
@@ -160,19 +184,19 @@ class Pattern :
         self.type = self.value.calcType(env)
 
 
-class Constant :
-    def __init__(self, value, ctype):
-        self.value = value
-        self.ctype = ctype
-        self.dict = locals()
-        self.dict.pop('self', None)
-
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def __str__(self):
-        return self.dict.__str__()
-
+# class Constant :
+#     def __init__(self, value, ctype):
+#         self.value = value
+#         self.ctype = ctype
+#         self.dict = locals()
+#         self.dict.pop('self', None)
+#
+#     def __repr__(self):
+#         return self.__class__.__name__
+#
+#     def __str__(self):
+#         return self.dict.__str__()
+#
 
 class MRule:
     def __init__(self, pat, exp):
@@ -241,7 +265,7 @@ class valbind:
         """
         self.pat.calcType(env)
         self.pat.update()
-        self.exp.checkType(env)
+        self.exp.calcType(env)
         print("Valbind: ", self.pat.value)
         if self.pat.type == self.exp.type:
             print("valbind checked: ", self.pat.value.id)
@@ -272,12 +296,13 @@ class Expression:
         :param cls: string
         :param reg: tuple
         """
+        type = None
         self.cls = cls
         self.reg = reg
         self.dict = locals()
         self.dict.pop('self', None)
 
-        self.type = None
+        self.type = type
 
     def __repr__(self):
         return self.__class__.__name__
@@ -290,41 +315,57 @@ class Expression:
         :param applist: list[Expression]
         :param env: dict
         """
-        for x in applist:
-            x.checkType(env)
-            print(x)
 
-        return applist[0].type
+        applist[0].calcType(env)
+        rtn = applist[0].type # function type
+
+        for i in range(1, len(applist)):
+            x = applist[i]
+            """ :type : Expression """
+            x.calcType(env)
+            print('Function call ', i, ' : ', rtn)
+            if rtn[0] != x.type:
+                raise SMLSyntaxError("Parameters doesn't match!")
+            else:
+                rtn = rtn[1]
+
+        return rtn
 
     def update(self):
         for x in self.dict:
             self.dict[x] = getattr(self, x)
 
-    def checkType(self, env):
+    def calcType(self, env):
         # print(self)
         cls = self.cls
         if cls == "App":
             r = self.reg
-            """ :type : list[exp] | Value """
+            """ :type : list[exp] | Value"""
             if type(r) == Value:
                 print("R: ", r)
-                self.type = env[r.id].calcType(env)# r.calcType(env)
-                self.update()
+                self.type = env[r.id].calcType(env)
             else:
                 # don't care about op
                 # function should be the first argument
                 self.type = self.calcAppList(r, env)
-                self.update()
         elif cls == "Let":
+            print("LET: ", self)
             decs, exp = self.reg
             for x in decs:
                 x.checkType(env)
-            exp.checkType(env)
-            self.type = exp.type
+            if type(exp) == list:
+                for x in exp:
+                    x.calcType(env)
+                self.type = exp[-1].type
+            else:
+                exp.calcType(env)
+                self.type = exp.type
         elif cls == "Constant":
             r = self.reg
             """ :type : Value """
             self.type = r.calcType(env)
+
+        self.update()
 
 
 

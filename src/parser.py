@@ -36,13 +36,13 @@ def p_cons_real(p):
 def p_cons_str(p):
     'cons : STRING_VAL'
     print("string : ", p[1])
-    p[0] = Value(value=p[0], tycon=string_type)
+    p[0] = Value(value=p[1], tycon=string_type)
 
 
 def p_cons_char(p):
     'cons : CHAR_VAL'
     print("char : ", p[1])
-    p[0] = Value(value=p[0], tycon=char_type)
+    p[0] = Value(value=p[1], tycon=char_type)
 
 
 def p_vid(p):
@@ -109,7 +109,7 @@ def p_atpat_r(p):
     if len(p) == 3:
         p[0] = Pattern(Unit())
     else:
-        p[0] = Pattern(Value(value=p[2], tycon=record_type))
+        p[0] = Pattern( Value(value=p[2], tycon=TyCon(name='record')) )
 
 
 def p_atpat(p):
@@ -122,7 +122,7 @@ def p_patrow_seq(p):
                     | lab '=' pat ',' patrow
     '''
     if len(p) == 4:
-        p[0] = Pattern(RecordItem(lab=p[1], value=p[3].value))
+        p[0] = [ Pattern(RecordItem(lab=p[1], value=p[3].value)) ]
     else:
         p[0] = [ Pattern(RecordItem(lab=p[1], value=p[3].value)) ] + p[5]
 
@@ -145,21 +145,21 @@ def p_pat(p):
             | pat ':' ty
     '''
     print(" PAT ")
-    if len(p) == 2:
+    if len(p) == 2: # atpat
         p[0] = p[1]
-    elif p[1] == "op":
+    elif p[1] == "op": # op vid atpat
         p[0] = Pattern(Value(id=p[2], value=p[3].value, op=True))
-    elif len(p) == 3:
+    elif len(p) == 3: # vid atpat
         p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
-    elif p[2] == ':':
+    elif p[2] == ':': # pat : ty
         p[1].value.tycon = p[3]
         p[1].value.update()
         p[0] = Pattern(p[1].value)
-    else:
+    else: # pat vid pat TODO
         p[0] = Pattern( Value(
                 value=Value(
                     value=[RecordItem(1, p[1].value), RecordItem(2, p[3].value)],
-                    tycon=record_type),
+                    tycon=TyCon(name="record")),
                 vcon=p[2]))
 
 
@@ -255,6 +255,7 @@ def p_atexp(p):
     ''' atexp   : vid
                 | OP vid
                 | LET decs IN exp END
+                | LET decs IN exps END
                 | '(' exp ')'
     '''
     if len(p) == 2:
@@ -273,10 +274,21 @@ def p_exprow(p):
     '''
     print(" EXPROW ")
     if len(p) == 4:
-        p[0] = {p[1] : p[3]}
+        p[0] = [ RecordItem(p[1], p[3]) ]
     else:
-        p[0] = p[5]
-        p[0][p[1]] = p[3]
+        p[0] = [ RecordItem(p[1], p[3]) ] + p[5]
+
+
+def p_exps(p):
+    ''' exps    : exp ';' exp
+    '''
+    p[0] = [p[1], p[3]]
+
+
+def p_exps_(p):
+    ''' exps    : exp ';' exps
+    '''
+    p[0] = [p[1]] + p[3]
 
 
 def p_exp(p):
@@ -290,7 +302,10 @@ def p_exp(p):
     '''
     print(" EXP ")
     if len(p) == 2:
-        p[0] = Expression( "App", p[1] )
+        if len(p[1]) == 1:
+            p[0] = p[1][0]
+        else:
+            p[0] = Expression( "App", p[1] )
     elif len(p) == 3:
         p[0] = Expression( "Fn", p[2] )
     elif p[2] == ':':

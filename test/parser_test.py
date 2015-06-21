@@ -18,7 +18,7 @@ def desent(level, x):
             if y:
                 desent(level + 1, y)
 
-    elif type(x) in (TyCon, TypeExpression, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, Constant, RecordItem, Unit, MRule, Match):
+    elif type(x) in (TyCon, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, RecordItem, Unit, MRule, Match):
         print("  " * level, end="")
         # x.show()
         print(x)
@@ -45,7 +45,13 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_typecheck(self):
-        x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
+        # x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
+        # typecheck(x)
+        self.assertEqual(True, True)
+
+    def test_hello(self):
+        x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
+        desent(0, x)
         typecheck(x)
         self.assertEqual(True, True)
 
