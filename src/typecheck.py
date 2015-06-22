@@ -10,3 +10,4 @@ def typecheck(p):
 
     if type(p) == Declaration:
         p.checkType(init)
+

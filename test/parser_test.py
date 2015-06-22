@@ -55,6 +55,14 @@ class ParserTest(unittest.TestCase):
         typecheck(x)
         self.assertEqual(True, True)
 
+    def test_call_error(self):
+        x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print 1; 0 end')
+        with self.assertRaises(SMLSyntaxError):
+            typecheck(x)
+        x = parser.parse('val it : int = let val a : int = 1.0 val s : string = "Hello World!\n" in print s; 0 end')
+        with self.assertRaises(SMLSyntaxError):
+            typecheck(x)
+        self.assertEqual(True, True)
 
 
 if __name__ == '__main__':

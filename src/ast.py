@@ -1,4 +1,4 @@
-class SMLSyntaxError:
+class SMLSyntaxError(BaseException):
     def __init__(self, s):
         self.s = s
 
@@ -106,7 +106,10 @@ class Declaration :
         return self.__class__.__name__
 
     def checkType(self, env):
-        return self.bind.checkType(env)
+        if not self.bind.checkType(env):
+            raise SMLSyntaxError("Valbind with different type.")
+        else:
+            return True
 
 
 class Value :
@@ -183,20 +186,6 @@ class Pattern :
     def calcType(self, env):
         self.type = self.value.calcType(env)
 
-
-# class Constant :
-#     def __init__(self, value, ctype):
-#         self.value = value
-#         self.ctype = ctype
-#         self.dict = locals()
-#         self.dict.pop('self', None)
-#
-#     def __repr__(self):
-#         return self.__class__.__name__
-#
-#     def __str__(self):
-#         return self.dict.__str__()
-#
 
 class MRule:
     def __init__(self, pat, exp):
