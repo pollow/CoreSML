@@ -46,7 +46,7 @@ def p_cons_char(p):
 
 
 def p_vid(p):
-    ''' vid : SYMBOLIC
+    ''' vid : symbol
             | ALPHANUMERIC
     '''
     print(" VID : ", p[1])
@@ -491,6 +491,17 @@ def p_empty(p):
     print(" EMPTY ")
     p[0] = []
 
+
+def p_symbol(p):
+    '''symbol :  SYMBOLIC
+            | '+'
+            | '-'
+            | '*'
+            | '/'
+            | '^'
+            | '#'
+    '''
+    print(' symbol ')
 
 parser = yacc.yacc(debug=True)
 
