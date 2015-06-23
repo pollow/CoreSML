@@ -1,3 +1,12 @@
+def searchEnv(env, name):
+    if env == None:
+        return None
+    elif name in env:
+        return env[name]
+    else:
+        return searchEnv(env["__parent__"], name)
+
+
 class SMLSyntaxError(BaseException):
     def __init__(self, s):
         self.s = s
@@ -332,7 +341,7 @@ class Expression:
             """ :type : list[exp] | Value"""
             if type(r) == Value:
                 print("R: ", r)
-                self.type = env[r.id].calcType(env)
+                self.type = searchEnv(env, r.id).calcType(env)
             else:
                 # don't care about op
                 # function should be the first argument
