@@ -147,7 +147,7 @@ class Value :
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
-        if type(self.tycon) == tuple:
+        if isinstance(self.tycon, tuple):
             # A function call
             rtn = (self.tycon[0].checkType(), self.tycon[1].checkType())
             print("FN: ", rtn)
@@ -161,10 +161,10 @@ class Value :
             else: # records and user defined datatypes are all records
                 l = self.value
                 """:type : list[RecordItem]"""
-                if type(l) == list:
+                if isinstance(l, list):
                     t = {}
                     for x in l:
-                        assert(type(x) == RecordItem)
+                        assert(isinstance(x, RecordItem))
                         t[x.lab] = x.value
 
                     return t
@@ -339,7 +339,7 @@ class Expression:
         if cls == "App":
             r = self.reg
             """ :type : list[exp] | Value"""
-            if type(r) == Value:
+            if isinstance(r, Value):
                 print("R: ", r)
                 self.type = searchEnv(env, r.id).calcType(env)
             else:
@@ -351,7 +351,7 @@ class Expression:
             decs, exp = self.reg
             for x in decs:
                 x.checkType(env)
-            if type(exp) == list:
+            if isinstance(exp, list):
                 for x in exp:
                     x.calcType(env)
                 self.type = exp[-1].type

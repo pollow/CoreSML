@@ -6,14 +6,14 @@ from ast import *
 from typecheck import *
 
 def desent(level, x):
-    if type(x) == tuple:
+    if isinstance(x, tuple):
         print("  " * level, end="")
         print(x)
         for y in x:
             if y:
                 desent(level + 1, y)
 
-    elif type(x) == list:
+    elif isinstance(x, list):
         for y in x:
             if y:
                 desent(level + 1, y)
