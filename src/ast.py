@@ -69,7 +69,7 @@ class TyCon:
     def __str__(self):
         return self.dict.__str__()
 
-    def checkType(self):
+    def checkType(self, env):
         # TODO tyvars support
         if self.name in primative_tycon: # primative type
             return self.name
@@ -169,44 +169,26 @@ class Value :
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
-        if isinstance(self.tycon, tuple):
-            # A function call
-            rtn = (self.tycon[0].checkType(), self.tycon[1].checkType())
+        name = self.tycon.checkType(env)
+        if isinstance(name, tuple):
+            # A function
+            rtn = (name[0].checkType(env), name[1].checkType(env))
             print("FN: ", rtn)
             return rtn #(self.tycon[0].checkType(), self.tycon[1].checkType())
+        elif isinstance(name, dict): # records and user defined datatypes are all record
+            # just a record type descriptor
+            t = {}
+            tys = self.tycon.type
+            for x in tys:
+                t[x] = tys[x].type
+
+            return t
+        elif isinstance(name, str):
+                return name
         else:
-            name = self.tycon.name
-            if name in primative_tycon:
-                return name
-            elif name == 'unit':
-                return name
-            else: # records and user defined datatypes are all records
-                l = self.value
-                """:type : list[Pattern]"""
-                # The Pattern contain RecordItem as Value
-                if isinstance(l, list):
-                    # impossible now
-                    t = {}
-                    for x in l:
-                        assert(isinstance(x, Pattern))
-                        # t[x.lab] = x.value
-                        x.calcType(env)
-                        t[x.value.lab] = x.type
-
-                    self.tycon = t
-                    return t
-                elif l is None:
-                    # just a type descriptor
-                    t = {}
-                    tys = self.tycon.type
-                    for x in tys:
-                        t[x] = tys[x].type
-
-                    return t
-                else:
-                    # get a way to check if it is a datatype
-                    # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
-                    return name
+            # get a way to check if it is a datatype
+            # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
+            return name
 
 
 class Pattern :
@@ -260,6 +242,7 @@ class MRule:
 
     def __str__(self):
         return self.dict.__str__()
+
 
 class Match:
     def __init__(self, value, rules):
@@ -448,6 +431,7 @@ class Expression:
                 x.calcType(env)
                 t[x.lab] = x.type
                 v[x.lab] = x.value
+
             self.type = t
             self.record = v
 

@@ -2,7 +2,7 @@ from ast import *
 import pprint
 
 init = {
-    'print' : Value(tycon=(string_type, unit_type), id='print')
+    'print' : Value(tycon=TyCon(name="fn", type=(string_type, unit_type)), id='print')
 }
 
 def typecheck(p):

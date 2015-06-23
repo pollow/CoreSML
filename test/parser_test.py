@@ -41,14 +41,6 @@ class ParserTest(unittest.TestCase):
         desent(0, x)
         self.assertEqual(True, True)
 
-    def test_something(self):
-        self.assertEqual(True, True)
-
-    def test_typecheck(self):
-        # x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
-        # typecheck(x)
-        self.assertEqual(True, True)
-
     def test_hello(self):
         x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
         desent(0, x)
@@ -78,6 +70,18 @@ class ParserTest(unittest.TestCase):
         x = parser.parse(x)
         desent(0, x)
         typecheck(x)
+        desent(0, x)
+        self.assertEqual(True, True)
+
+    def test_fn(self):
+        x = "val it : int = " \
+            "let " \
+            "val x : int = 10 " \
+            "val double : int -> int = fn x : int => x mul 2 " \
+            "in double x end"
+        x = parser.parse(x)
+        desent(0, x)
+        # typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
 
