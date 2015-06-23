@@ -6,6 +6,7 @@ start = 'dec'
 
 debug = 1
 
+
 def p_program(p):
     '''program  : program ';' exp 
                 | program ';' dec
@@ -502,6 +503,7 @@ def p_symbol(p):
             | '#'
     '''
     print(' symbol ')
+
 
 parser = yacc.yacc(debug=True)
 
