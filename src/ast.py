@@ -1,3 +1,5 @@
+IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*"}
+
 def searchEnv(env, name):
     if env == None:
         return None
@@ -28,10 +30,13 @@ class Unit:
 
 class RecordItem:
     def __init__(self, lab, value):
+        type = None
         self.lab = lab
         self.value = value
+        self.type = type
         self.dict = locals()
         self.dict.pop('self', None)
+
 
     def isWild(self):
         return (self.lab == None) and (self.value == None)
@@ -42,14 +47,19 @@ class RecordItem:
     def __str__(self):
         return self.dict.__str__()
 
+    def calcType(self, env):
+        self.type = self.value.calcType(env)
+        return self.type
+
 
 class TyCon:
-    def __init__(self, tyvar = [], name = None, len = 0, type = None):
+    def __init__(self, tyvar = [], name = None, len = 0, type = None, size = 0):
         # tycon = ( string, int )
         self.tyvar  = tyvar
         self.name   = name
         self.type   = type # string for primitive type, dict for compound type
         self.len    = len
+        self.size   = size
         self.dict   = locals()
         self.dict.pop('self', None)
 
@@ -72,12 +82,12 @@ class TyCon:
             return self.name
 
 
-int_type    = TyCon([], "int", 0, 'int')
-real_type   = TyCon([], "real", 0, 'real')
-string_type = TyCon([], "string", 0, 'string')
-char_type   = TyCon([], "char", 0, 'char')
+int_type    = TyCon([], "int", 0, 'int', 4)
+real_type   = TyCon([], "real", 0, 'real', 4)
+string_type = TyCon([], "string", 0, 'string', 4)
+char_type   = TyCon([], "char", 0, 'char', 1)
 # record_type = TyCon([], "record", 0, None)
-unit_type   = TyCon([], "unit", 0, Unit())
+unit_type   = TyCon([], "unit", 0, Unit(), 4)
 
 primative_tycon = {
     'int'       : int_type,
@@ -120,6 +130,10 @@ class Declaration :
         else:
             return True
 
+    def genCode(self, getName):
+        self.bind.genCode()
+
+
 
 class Value :
     def __init__(self, id = None, value = None, tycon = None, vcon = None, wildcard = False, op = False):
@@ -137,6 +151,14 @@ class Value :
 
     def __str__(self):
         return self.dict.__str__()
+
+    def isConstant(self):
+        return self.value is not None and \
+               self.id is None and \
+               self.tycon is not None
+
+    def isConsStr(self):
+        return self.isConstant() and self.tycon is string_type
 
     def update(self):
         for x in self.dict:
@@ -160,12 +182,25 @@ class Value :
                 return name
             else: # records and user defined datatypes are all records
                 l = self.value
-                """:type : list[RecordItem]"""
+                """:type : list[Pattern]"""
+                # The Pattern contain RecordItem as Value
                 if isinstance(l, list):
+                    # impossible now
                     t = {}
                     for x in l:
-                        assert(isinstance(x, RecordItem))
-                        t[x.lab] = x.value
+                        assert(isinstance(x, Pattern))
+                        # t[x.lab] = x.value
+                        x.calcType(env)
+                        t[x.value.lab] = x.type
+
+                    self.tycon = t
+                    return t
+                elif l is None:
+                    # just a type descriptor
+                    t = {}
+                    tys = self.tycon.type
+                    for x in tys:
+                        t[x] = tys[x].type
 
                     return t
                 else:
@@ -177,8 +212,10 @@ class Value :
 class Pattern :
     def __init__(self, value):
         type = None
+        record = None
         self.type = type
         self.value = value
+        self.record = record
         self.dict = locals()
         self.dict.pop('self', None)
 
@@ -193,7 +230,22 @@ class Pattern :
             self.dict[x] = getattr(self, x)
 
     def calcType(self, env):
-        self.type = self.value.calcType(env)
+        if isinstance(self.value, Value):
+            self.type = self.value.calcType(env)
+        elif isinstance(self.value, list):
+            # record decompose binding
+            t = {}
+            v = {}
+            for x in self.value:
+                t[x.lab] = x.calcType(env)
+                v[x.lab] = x.value # a issue here, nested pattern binding
+
+            self.type = t
+            self.record = v
+
+
+        self.update()
+        return self.type
 
 
 class MRule:
@@ -256,21 +308,38 @@ class valbind:
     def __str__(self):
         return self.dict.__str__()
 
+    def recordPatBind(self, env, pat):
+        v = pat.value
+        if isinstance(v, list): # record decompose
+            for x in v:
+                self.recordPatBind(env, x.value)
+        elif isinstance(v, Value): # normal bind
+            env[v.id] = v
+
+
     def checkType(self, env):
         """
         :param env: dict
         :return: bool
         """
-        self.pat.calcType(env)
-        self.pat.update()
-        self.exp.calcType(env)
-        print("Valbind: ", self.pat.value)
-        if self.pat.type == self.exp.type:
-            print("valbind checked: ", self.pat.value.id)
-            env[self.pat.value.id] = self.pat.value
+        if self.pat.calcType(env) == self.exp.calcType(env): # primative type
+            print("valbind checked: ", self.pat.value)
+            if isinstance(self.pat.value, list): # reocord
+                self.recordPatBind(env, self.pat)
+            else:
+                env[self.pat.value.id] = self.pat.value
             return True
         else:
             return False
+
+    def genCode(self, cg, getName):
+        pat = self.pat
+        name = getName()
+        cg.allocate(name, IRTyName[pat.type.name], self.pat.type.size)
+        self.exp.genCode(cg, getName, name)
+        # cg.assign(name, IRTyName[self.pat.type.name], self.pat.type.size)
+        if pat.type in primative_tycon:
+            cg.assign(pat.offset, name)
 
 
 class datbind:
@@ -295,12 +364,16 @@ class Expression:
         :param reg: tuple
         """
         type = None
+        scope = None
+        record = None
         self.cls = cls
         self.reg = reg
         self.dict = locals()
         self.dict.pop('self', None)
 
         self.type = type
+        self.scope = scope
+        self.record = None
 
     def __repr__(self):
         return self.__class__.__name__
@@ -334,8 +407,9 @@ class Expression:
             self.dict[x] = getattr(self, x)
 
     def calcType(self, env):
-        # print(self)
+        print("Get into an expression, the scope is: ", env)
         cls = self.cls
+        self.scope = env
         if cls == "App":
             r = self.reg
             """ :type : list[exp] | Value"""
@@ -348,22 +422,37 @@ class Expression:
                 self.type = self.calcAppList(r, env)
         elif cls == "Let":
             print("LET: ", self)
+            scope = {"__parent__": env}
             decs, exp = self.reg
             for x in decs:
-                x.checkType(env)
+                # create a new scope
+                x.checkType(scope)
             if isinstance(exp, list):
                 for x in exp:
-                    x.calcType(env)
+                    x.calcType(scope)
                 self.type = exp[-1].type
             else:
-                exp.calcType(env)
+                exp.calcType(scope)
                 self.type = exp.type
         elif cls == "Constant":
             r = self.reg
             """ :type : Value """
             self.type = r.calcType(env)
+        elif cls == "Record":
+            r = self.reg
+            """ :type : [RecordItem] """
+            t = {}
+            v = {}
+            for x in r:
+                assert isinstance(x, RecordItem)
+                x.calcType(env)
+                t[x.lab] = x.type
+                v[x.lab] = x.value
+            self.type = t
+            self.record = v
 
         self.update()
+        return self.type
 
 
 

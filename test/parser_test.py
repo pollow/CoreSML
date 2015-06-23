@@ -53,6 +53,7 @@ class ParserTest(unittest.TestCase):
         x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
         desent(0, x)
         typecheck(x)
+        desent(0, x)
         self.assertEqual(True, True)
 
     def test_call_error(self):
@@ -62,6 +63,22 @@ class ParserTest(unittest.TestCase):
         x = parser.parse('val it : int = let val a : int = 1.0 val s : string = "Hello World!\n" in print s; 0 end')
         with self.assertRaises(SMLSyntaxError):
             typecheck(x)
+        self.assertEqual(True, True)
+
+    def test_record_assign(self):
+        x = 'val {x = a : int, y = b : real} = {x = 1, y = 2.0}'
+        print("Test: ", x)
+        x = parser.parse(x)
+        desent(0, x)
+        typecheck(x)
+        desent(0, x)
+
+        x = 'val x : {x : int, y : real} = {x = 1, y = 2.0}'
+        print("Test: ", x)
+        x = parser.parse(x)
+        desent(0, x)
+        typecheck(x)
+        desent(0, x)
         self.assertEqual(True, True)
 
 
