@@ -110,7 +110,7 @@ def p_atpat_r(p):
     if len(p) == 3:
         p[0] = Pattern(Unit())
     else:
-        p[0] = Pattern( Value(value=p[2], tycon=TyCon(name='record')) )
+        p[0] = Pattern( p[2] )
 
 
 def p_atpat(p):
@@ -123,9 +123,9 @@ def p_patrow_seq(p):
                     | lab '=' pat ',' patrow
     '''
     if len(p) == 4:
-        p[0] = [ Pattern(RecordItem(lab=p[1], value=p[3].value)) ]
+        p[0] = [ RecordItem(lab=p[1], value=p[3]) ]
     else:
-        p[0] = [ Pattern(RecordItem(lab=p[1], value=p[3].value)) ] + p[5]
+        p[0] = [ RecordItem(lab=p[1], value=p[3]) ] + p[5]
 
 
 def p_patrow(p):
@@ -149,7 +149,7 @@ def p_pat(p):
     if len(p) == 2: # atpat
         p[0] = p[1]
     elif p[1] == "op": # op vid atpat
-        p[0] = Pattern(Value(id=p[2], value=p[3].value, op=True))
+        p[0] = Pattern(Value(vcon=p[2], value=p[3].value, op=True))
     elif len(p) == 3: # vid atpat
         p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
     elif p[2] == ':': # pat : ty
@@ -218,7 +218,7 @@ def p_tyrow(p):
     '''
     print(" TYROW : ", len(p))
     if len(p) == 4:
-        p[0] = TyCon(type={p[1] : p[3]})
+        p[0] = TyCon(type={p[1] : p[3]}, name='record')
     else:
         p[0] = p[5]
         p[0].type[p[1]] = p[3]
@@ -410,9 +410,9 @@ def p_typbind(p):
     '''
     print(" TYPBIND ")
     if len(p) == 4:
-        p[0] = typbind([], p[2], p[3])
+        p[0] = typbind([], p[1], p[3])
     elif len(p) == 5:
-        p[0] = typbind(p[1], p[2], p[3])
+        p[0] = typbind(p[1], p[2], p[4])
 
 
 def p_datbind(p):
