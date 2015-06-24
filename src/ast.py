@@ -1,20 +1,28 @@
-IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*"}
-
-def searchEnv(env, name):
-    if env == None:
-        return None
-    elif name in env:
-        return env[name]
-    else:
-        return searchEnv(env["__parent__"], name)
-
-
 class SMLSyntaxError(BaseException):
     def __init__(self, s):
         self.s = s
 
     def __str__(self):
         return self.s
+
+
+IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*"}
+
+
+def appendNewScope(env):
+    scope = {"__parent__": env, "__len__": 0, "__children__": []}
+    env["__children__"].append(scope)
+    return scope
+
+
+def searchEnv(env, name):
+    if env == None:
+        raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
+        return None
+    elif name in env:
+        return env[name]
+    else:
+        return searchEnv(env["__parent__"], name)
 
 
 class Unit:
@@ -69,7 +77,7 @@ class TyCon:
     def __str__(self):
         return self.dict.__str__()
 
-    def checkType(self):
+    def checkType(self, env):
         # TODO tyvars support
         if self.name in primative_tycon: # primative type
             return self.name
@@ -164,54 +172,65 @@ class Value :
         for x in self.dict:
             self.dict[x] = getattr(self, x)
 
+
+    @staticmethod
+    def flattenType(env, tycon):
+        print("FlattenType: ", tycon)
+        name = tycon.checkType(env)
+        if isinstance(name, tuple):
+            # A function
+            rtn = (Value.flattenType(env, name[0]), Value.flattenType(env, name[1]))
+            print("FN: ", rtn)
+            return rtn
+        elif isinstance(name, dict): # records and user defined datatypes are all record
+            # just a record type descriptor
+            t = {}
+            for x in name:
+                t[x] = Value.flattenType(env, name[x])
+
+            return t
+        elif isinstance(name, str):
+            return name
+        else:
+            # get a way to check if it is a datatype
+            # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
+            raise SMLSyntaxError("Unexpected type check in FlattenType: {}".format(tycon))
+            return name
+
+
     def calcType(self, env):
         """
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
-        if isinstance(self.tycon, tuple):
-            # A function call
-            rtn = (self.tycon[0].checkType(), self.tycon[1].checkType())
-            print("FN: ", rtn)
-            return rtn #(self.tycon[0].checkType(), self.tycon[1].checkType())
-        else:
-            name = self.tycon.name
-            if name in primative_tycon:
-                return name
-            elif name == 'unit':
-                return name
-            else: # records and user defined datatypes are all records
-                l = self.value
-                """:type : list[Pattern]"""
-                # The Pattern contain RecordItem as Value
-                if isinstance(l, list):
-                    # impossible now
-                    t = {}
-                    for x in l:
-                        assert(isinstance(x, Pattern))
-                        # t[x.lab] = x.value
-                        x.calcType(env)
-                        t[x.value.lab] = x.type
+        return Value.flattenType(env, self.tycon)
+        # name = self.tycon.checkType(env)
+       #  if isinstance(name, tuple):
+       #      # A function
+       #      rtn = (name[0].checkType(env), name[1].checkType(env))
+       #      # rtn = (self.flattenType(env, name[0]), self.flattenType(env, name[1]))
+       #      print("FN: ", rtn)
+       #      return rtn #(self.tycon[0].checkType(), self.tycon[1].checkType())
+       #  elif isinstance(name, dict): # records and user defined datatypes are all record
+       #      # just a record type descriptor
+       #      t = {}
+       #      tys = self.tycon.type
+       #      for x in tys:
+       #          t[x] = tys[x].type
 
-                    self.tycon = t
-                    return t
-                elif l is None:
-                    # just a type descriptor
-                    t = {}
-                    tys = self.tycon.type
-                    for x in tys:
-                        t[x] = tys[x].type
+       #      return t
+       #  elif isinstance(name, str):
+       #      return name
+       #  else:
+       #      # get a way to check if it is a datatype
+       #      # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
+       #     return name
 
-                    return t
-                else:
-                    # get a way to check if it is a datatype
-                    # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
-                    return name
+
 
 
 class Pattern :
-    def __init__(self, value):
-        type = None
+    def __init__(self, value, type=None):
         record = None
         self.type = type
         self.value = value
@@ -260,6 +279,7 @@ class MRule:
 
     def __str__(self):
         return self.dict.__str__()
+
 
 class Match:
     def __init__(self, value, rules):
@@ -396,6 +416,15 @@ class Expression:
     def __str__(self):
         return self.dict.__str__()
 
+    @staticmethod
+    def flattenBind(env, pat):
+        if isinstance(pat.value, Value):
+            env[pat.value.id] = pat.value
+        elif isinstance(pat.value, list):
+            for x in pat.value:
+                Expression.flattenBind(env, x.value)
+
+
     def calcAppList(self, applist, env):
         """
         :param applist: list[Expression]
@@ -424,21 +453,22 @@ class Expression:
     def calcType(self, env):
         print("Get into an expression, the scope is: ", env)
         cls = self.cls
+        r = self.reg
+        """ :type : list[exp] | Value | [RecordItem] """
         self.scope = env
         if cls == "App":
-            r = self.reg
-            """ :type : list[exp] | Value"""
             if isinstance(r, Value):
                 print("R: ", r)
-                self.type = searchEnv(env, r.id).calcType(env)
+                v = searchEnv(env, r.id)
+                self.type = v.calcType(env)
             else:
                 # don't care about op
                 # function should be the first argument
                 self.type = self.calcAppList(r, env)
         elif cls == "Let":
             print("LET: ", self)
-            scope = {"__parent__": env}
-            decs, exp = self.reg
+            scope = appendNewScope(env)
+            decs, exp = r
             for x in decs:
                 # create a new scope
                 x.checkType(scope)
@@ -450,12 +480,8 @@ class Expression:
                 exp.calcType(scope)
                 self.type = exp.type
         elif cls == "Constant":
-            r = self.reg
-            """ :type : Value """
             self.type = r.calcType(env)
         elif cls == "Record":
-            r = self.reg
-            """ :type : [RecordItem] """
             t = {}
             v = {}
             for x in r:
@@ -463,8 +489,21 @@ class Expression:
                 x.calcType(env)
                 t[x.lab] = x.type
                 v[x.lab] = x.value
+
             self.type = t
             self.record = v
+        elif cls == "Fn":
+            assert len(self.reg) == 1 # datatype is not supported not
+            x = r[0]
+            """ :type:(Pattern, Expression)"""
+            param = x[0].calcType(env)
+            scope = appendNewScope(env)
+            # bind to new scope
+            # check expression return type
+            Expression.flattenBind(scope, x[0])
+            exp = x[1].calcType(scope)
+            self.type = (param, exp)
+
 
         self.update()
         return self.type

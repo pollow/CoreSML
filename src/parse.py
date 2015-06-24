@@ -151,11 +151,15 @@ def p_pat(p):
     elif p[1] == "op": # op vid atpat
         p[0] = Pattern(Value(vcon=p[2], value=p[3].value, op=True))
     elif len(p) == 3: # vid atpat
-        p[0] = Pattern(Value(vcon=p[1], value=p[2].value)) # or p[2].value with vcon = p[1]?
+        p[0] = Pattern((p[1], p[2])) # or p[2].value with vcon = p[1]?
     elif p[2] == ':': # pat : ty
-        p[1].value.tycon = p[3]
-        p[1].value.update()
-        p[0] = Pattern(p[1].value)
+        if isinstance(p[1].value, list):
+            p[0] = Pattern(p[1].value, p[3])
+        else:
+            p[1].value.tycon = p[3]
+            p[1].value.update()
+            p[0] = Pattern(p[1].value)
+
     else: # pat vid pat TODO
         p[0] = Pattern( Value(
                 value=Value(
@@ -176,7 +180,7 @@ def p_ty(p):
     if len(p) == 2:
         p[0] = p[1]
     else:
-        p[0] = TyCon([], None, 0, (p[1], p[3]))
+        p[0] = TyCon([], "fn", 0, (p[1], p[3]))
 
 def p_aty_con(p):
     ''' aty : tycon
@@ -500,6 +504,7 @@ def p_symbol(p):
             | '^'
             | '#'
     '''
+    p[0] = p[1]
     print(' symbol ')
 
 
