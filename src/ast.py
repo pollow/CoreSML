@@ -77,7 +77,7 @@ class TyCon:
     def __str__(self):
         return self.dict.__str__()
 
-    def checkType(self, env):
+    def calcType(self, env):
         # TODO tyvars support
         if self.name in primative_tycon: # primative type
             return self.name
@@ -86,8 +86,7 @@ class TyCon:
         elif self.name in ['record', 'fn'] : # record or fn
             return self.type
         else: # datatype or alias
-            # TODO not sure now
-            return self.name
+            return self.type
 
 
 int_type    = TyCon([], "int", 0, 'int', 4)
@@ -309,6 +308,13 @@ class typbind:
     def __str__(self):
         return self.dict.__str__()
 
+    def checkType(self, env):
+        self.typBind(env)
+        return True
+
+    def typBind(self,env):
+        env[self.tycon]=Tycon(name=self.tycon,type=self.type,size=0,len=0,tyvar=self.param)
+
 
 class valbind:
     def __init__(self, pat, exp):
@@ -376,20 +382,13 @@ class datbind:
     def __str__(self):
         return self.dict.__str__()
 
-    def checkType(self, env):
-        """
-        :param env: dict
-        :return: bool
-        """
-        if self.pat.calcType(env) == self.exp.calcType(env): # primative type
-            print("valbind checked: ", self.pat.value)
-            if isinstance(self.pat.value, list): # reocord
-                self.recordPatBind(env, self.pat)
-            else:
-                env[self.pat.value.id] = self.pat.value
-            return True
-        else:
-            return False
+    def checkType(self,env):
+        self.datBind(env)
+        return True
+    
+    def datBind(self,env):
+        env[self.type]=TyCon(name=self.type,len=0,size=0,type=self.vcon,tyvar=self.tyvars)
+
 
 
 class Expression:
