@@ -356,6 +356,21 @@ class datbind:
     def __str__(self):
         return self.dict.__str__()
 
+    def checkType(self, env):
+        """
+        :param env: dict
+        :return: bool
+        """
+        if self.pat.calcType(env) == self.exp.calcType(env): # primative type
+            print("valbind checked: ", self.pat.value)
+            if isinstance(self.pat.value, list): # reocord
+                self.recordPatBind(env, self.pat)
+            else:
+                env[self.pat.value.id] = self.pat.value
+            return True
+        else:
+            return False
+
 
 class Expression:
     def __init__(self, cls, reg):

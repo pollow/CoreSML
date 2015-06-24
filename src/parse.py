@@ -421,11 +421,9 @@ def p_datbind(p):
     '''
     print(" DATBIND ")
     if len(p) == 4:
-        p[0] = [ datbind([], p[2], p[3]) ]
+        p[0] = [ datbind([], p[1], p[3]) ]
     elif len(p) == 5:
-        p[0] = [ datbind(p[1], p[2], p[3]) ]
-    else:
-        p[0] = [ datbind(p[1], p[2], p[3]) ] + p[6]
+        p[0] = [ datbind(p[1], p[2], p[4]) ]
 
 
 def p_conbind(p):

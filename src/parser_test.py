@@ -31,10 +31,6 @@ def desent(level, x):
                 #         desent(level + 1, y)
 
 
-if __name__ == "__main__":
-    x = parser.parse(input())
-
-
 class ParserTest(unittest.TestCase):
     def test_ast(self):
         x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
