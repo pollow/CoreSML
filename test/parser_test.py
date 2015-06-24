@@ -71,20 +71,57 @@ class ParserTest(unittest.TestCase):
         desent(0, x)
         typecheck(x)
         desent(0, x)
+
+        x = 'val it : int = let ' \
+            'val a : int = 10' \
+            'val x : {x : int, y : real} = {x = a, y = 2.0}' \
+            'in x; 0 end'
+
+        print("Test: ", x)
+        x = parser.parse(x)
+        desent(0, x)
+        typecheck(x)
+        desent(0, x)
+
+        x = 'val it : int = let ' \
+            'val a : int = 10' \
+            'val x : {x : int, y : {a : int, b : int}} = {x = a, y = {a = 2, b = 3}} ' \
+            'in x; 0 end'
+
+        print("Test: ", x)
+        x = parser.parse(x)
+        desent(0, x)
+        typecheck(x)
+        desent(0, x)
         self.assertEqual(True, True)
 
     def test_fn(self):
         x = "val it : int = " \
             "let " \
             "val x : int = 10 " \
-            "val double : int -> int = fn x : int => x mul 2 " \
+            "val double : int -> int = fn x : int => mul { 1 = x, 2 = 2 } " \
             "in double x end"
+        print("Test: ", x)
         x = parser.parse(x)
         desent(0, x)
-        # typecheck(x)
+        typecheck(x)
+        desent(0, x)
+
+        x = "val it : int = " \
+            "let " \
+            "val x : int = 10 " \
+            "val sum: {1 : int, 2 : int, 3: int} -> int = " \
+            "fn {1 = x : int, 2 = y : int, 3 = z : int} : int => " \
+            "add { 1 = add { 1 = x, 2 = y} , 2 = z} " \
+            "in sum {1=x, 2=x, 3=x} end"
+        print("Test: ", x)
+        x = parser.parse(x)
+        desent(0, x)
+        typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
 
 
 if __name__ == '__main__':
     unittest.main()
+

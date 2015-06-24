@@ -152,9 +152,13 @@ def p_pat(p):
     elif len(p) == 3: # vid atpat
         p[0] = Pattern((p[1], p[2])) # or p[2].value with vcon = p[1]?
     elif p[2] == ':': # pat : ty
-        p[1].value.tycon = p[3]
-        p[1].value.update()
-        p[0] = Pattern(p[1].value)
+        if isinstance(p[1].value, list):
+            p[0] = Pattern(p[1].value, p[3])
+        else:
+            p[1].value.tycon = p[3]
+            p[1].value.update()
+            p[0] = Pattern(p[1].value)
+
     else: # pat vid pat TODO
         p[0] = Pattern( Value(
                 value=Value(
@@ -501,6 +505,7 @@ def p_symbol(p):
             | '^'
             | '#'
     '''
+    p[0] = p[1]
     print(' symbol ')
 
 parser = yacc.yacc(debug=True)
