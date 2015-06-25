@@ -194,7 +194,7 @@ def p_aty_con(p):
     elif len(p) == 3:
         p[0] = TyCon([p[1]], p[2], 1)
     else:
-        p[0] = TyCon(p[3], p[3], len(p[2]))
+        p[0] = TyCon(p[2], p[4], len(p[2]))
 
 
 def p_aty(p):

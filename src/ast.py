@@ -26,7 +26,34 @@ def insertScope(env, name, value):
     env["__len__"] += value.calcSize()
 
 
-def searchEnv(env, name):
+def searchTyCon(tyc,name):
+    if not isinstance(tyc.type,list):
+        return False
+    for ele in tyc.type: 
+        if isinstance(name,Value): #datatype without param
+            if ele[0].id==name.id and ele[1]==unit_type:
+                return True
+        if isinstance(name,tuple): #datatype with param
+            if ele[0].id==name[0]:
+                if len(name[1].value)==1 and isinstance(ele[1].type,str):
+                    return ele[1].type==(name[1].value)[0].value.calcType()
+                else:
+                    for index in range(len(name[1].value)):
+                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType():
+                            pass
+                        else:
+                            return False
+                    return True
+    return False
+
+def searchEnv(env, name, typ=None):
+    if typ!=None:
+        if env==None:
+            return None
+        for ele in env.keys():
+            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name):
+                return ele
+        return searchEnv(env["__parent__"], name , 1)
     if env == None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
@@ -288,7 +315,12 @@ class Pattern :
 
             self.type = t
             self.record = v
-
+        elif isinstance(self.value,tuple):
+            tmp=searchEnv(env,self.value,1)
+            if tmp==False:
+                raise SMLSyntaxError("Parameters doesn't match!")
+            else:
+                self.type=tmp
 
         self.update()
         return self.type
@@ -452,6 +484,10 @@ class Expression:
         elif isinstance(pat.value, list):
             for x in pat.value:
                 Expression.flattenBind(env, x.value)
+        elif isinstance(pat.value,tuple):
+            for x in (pat.value)[1].value:
+                Expression.flattenBind(env,x.value)
+
 
 
     def calcAppList(self, applist, env):
@@ -478,6 +514,87 @@ class Expression:
     def update(self):
         for x in self.dict:
             self.dict[x] = getattr(self, x)
+
+    def calcFun(self,env,typ=1):
+        #assert len(self.reg) == 1 # datatype is not supported not
+        #x = r[0]
+        patType=None
+        expType=None
+        for x in r: 
+            """ :type:(Pattern, Expression)"""
+            if isinstance(x[0].value,Value):# 1.single value 2.constant 3.wildcard 4.datatype without param
+                if x[0].value.wildcard==True: # wildcard
+                    pass #do nothing
+                else :
+                    param = x[0].calcType(env)
+                    if isinstance(param,str): # constant ; single value with ty mentioned
+                        if patType != None and patType !=param:
+                            raise SMLSyntaxError("Parameters doesn't match!")
+                        else:
+                            patType=param
+                    elif param==None: # datatype without param
+                        tmp=searchEnv(env,x[0].value,1)
+                        if tmp==False: # cannot find datatype in env
+                            raise SMLSyntaxError("Parameters doesn't match!")
+                        if patType != None and patType != tmp:
+                            raise SMLSyntaxError("Parameters doesn't match!")
+                        else:
+                            patType=tmp;
+
+            elif isinstance(x[0].value,tuple): #datatype with param
+                tmp=searchEnv(env,x[0].value,1)
+                if tmp==False:
+                    raise SMLSyntaxError("Parameters doesn't match!")
+                elif patType!= None and patType != tmp:
+                    raise SMLSyntaxError("Parameters doesn't match!")
+                else:
+                    patType=tmp
+
+            elif isinstance(x[0].value,list): #[RecordItem,...]
+                t={"__wildCard__":False}
+                for element in x[0].value:
+                    if element.value==None and element.lab==None:
+                        t['__wildCard__']=True
+                    else:
+                        tmp=element.value.calcType()
+                        t[element.lab]=tmp
+                if patType == None:
+                    patType=t
+                elif not isinstance(patType,dict):
+                    raise SMLSyntaxError("Parameters doesn't match!")
+                else:
+                    if patType['__wildCard__']==False:
+                        if not ((patType.keys() | t.keys())==patType.keys()):
+                            raise SMLSyntaxError("Parameters doesn't match!")
+
+                    if t['__wildCard__']==False:
+                        if not ((patType.keys() | t.keys())==t.keys()):
+                            raise SMLSyntaxError("Parameters doesn't match!")
+                        
+                    for ele in patType.keys() & t.keys():
+                        if ele != "__wildCard__" and t[ele]==patType[ele]:
+                            pass
+                        elif ele != "__wildCard__" and t[ele]!=patType[ele]:
+                            raise SMLSyntaxError("Parameters doesn't match!")
+
+                    if t['__wildCard__']==False:
+                        patType=t
+
+                    elif patType['__wildCard__']==True:
+                        patType=dict(patType,**t)
+
+
+            scope = appendNewScope(env)
+            # bind to new scope
+            # check expression return type
+            Expression.flattenBind(scope, x[0])
+            exp = x[1].calcType(scope)
+            if expType != None and expType != exp:
+                raise SMLSyntaxError("Parameters doesn't match!")
+            else:
+                expType=exp
+
+        return (patType,expType)
 
     def calcType(self, env):
         print("Get into an expression, the scope is: ", env)
@@ -522,17 +639,7 @@ class Expression:
             self.type = t
             self.record = v
         elif cls == "Fn":
-            assert len(self.reg) == 1 # datatype is not supported not
-            x = r[0]
-            """ :type:(Pattern, Expression)"""
-            param = x[0].calcType(env)
-            scope = appendNewScope(env)
-            # bind to new scope
-            # check expression return type
-            Expression.flattenBind(scope, x[0])
-            exp = x[1].calcType(scope)
-            self.type = (param, exp)
-
+            self.type=calcFun(env)
 
         self.update()
         return self.type
