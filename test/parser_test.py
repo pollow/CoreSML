@@ -4,6 +4,7 @@ import unittest
 from parse import parser
 from ast import *
 from typecheck import *
+from codegen import *
 
 def desent(level, x):
     if isinstance(x, tuple):
@@ -121,6 +122,47 @@ class ParserTest(unittest.TestCase):
         desent(0, x)
         self.assertEqual(True, True)
 
+    def test_gen_hello(self):
+        x = 'val it : int = let val s : string = "Hello World!\n" in print s; 0 end'
+        # print("--------Code Generator Test----------")
+        # x = 'val it : int = 0'
+        # print("Test: ", x)
+        # x = parser.parse(x)
+        # env = typecheck(x)
+        # desent(0, x)
+        # codeGen(x, env)
+        # self.assertEqual(True, True)
+        # print("--------Code Generator Test Finished----------")
+
+        # print("--------Code Generator Test----------")
+        # x = 'val it : int = let val x : int = 110 val s : string = "Hello World!\n" in x end'
+        # print("Test: ", x)
+        # x = parser.parse(x)
+        # env = typecheck(x)
+        # desent(0, x)
+        # codeGen(x, env)
+        # self.assertEqual(True, True)
+        # print("--------Code Generator Test Finished----------")
+
+        # print("--------Code Generator Test----------")
+        # x = 'val it : int = let val x : int = 110 in let val q : int = 2 in x end end'
+        # print("Test: ", x)
+        # x = parser.parse(x)
+        # env = typecheck(x)
+        # desent(0, x)
+        # codeGen(x, env)
+        # self.assertEqual(True, True)
+        # print("--------Code Generator Test Finished----------")
+
+        print("--------Code Generator Test----------")
+        x = 'val it : int = let val s : string = "Hello World\n" in print s; 0 end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
 
 if __name__ == '__main__':
     unittest.main()
