@@ -84,7 +84,7 @@ float eqi(uint32_t *env) {
 }
 
 void print(uint32_t *env) {
-    printf("%s", (char *)(env+1));
+    printf("%s", *(char **)(env+1));
     return;
 }
 
@@ -165,6 +165,7 @@ int main() {
     printf("%s\n", intToStr((uint32_t *)env));
 
     env[0].i = 0; env[1].s = "78123.326"; env[2].s = "ABCDEFG";
+    print((uint32_t *)env);
     printf("%s\n", concat((uint32_t *)env));
 
     rtError("Raise A Exception.");

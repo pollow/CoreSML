@@ -6,7 +6,7 @@ class SMLSyntaxError(BaseException):
         return self.s
 
 
-IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*"}
+IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*", "unit": "void"}
 
 def calcLevels(env, name):
     if env == None:
@@ -400,21 +400,15 @@ class valbind:
             cg.enterMain()
         pat = self.pat
         # only 1 assginment
-        # cg.allocate(n1, IRTyName[pat.type], self.pat.size)
-        # cg.reserve(n1, IRTyName[pat.type])
         rtnName = self.exp.genCode(env, cg, getName)
-        n1 = getName()
-        cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
 
         if entry:
+            n1 = getName()
+            cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
             cg.rtnMain(n1)
         else:
-            n2, n3 = getName(), getName()
-            cg.emitInst("{} = load i32** %scope, align 4".format(n2))
-            cg.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, int(getOffset(env, self.pat.value.id)/4)))
-            cg.emitInst("store i32 {}, i32* {}, align 4".format(n1, n3))
+            cg.fillScope(rtnName, int(getOffset(env, self.pat.value.id)/4), getName)
             cg.emitInst("; Valbind")
-
 
         # cg.assign(name, IRTyName[self.pat.type.name], self.pat.type.size)
         # if pat.type in primative_tycon:
@@ -583,32 +577,25 @@ class Expression:
         if cls == "App":
             if isinstance(r, Value):
                 print("R: ", r)
-                levels = calcLevels(env, r.id)
-                s = getName()
-                cg.emitInst("{} = load i32** %scope, align 4".format(s))
-                while levels:
-                    s1, s2 = getName(), getName()
-                    cg.emitInst("{} = load i32* {}, align 4".format(s1, s))
-                    cg.emitInst("{} = inttoptr i32 {} to i32*".format(s2, s1))
-                    s = s2
-                    levels -= 1
-
-                args = [int(getOffset(env, r.id)/4), s, getName()]
-
-                tmp = "{2} = getelementptr inbounds i32* {1}, i32 {0}".format(*args)
-                # TODO did not save to stack. Dangling pointer if freed.
-
-                for x in tmp.split("\n"):
-                    cg.emitInst(x)
-
+                n = cg.extractVar(int(getOffset(env, r.id)/4), calcLevels(env, r.id), getName)
                 cg.emitInst("; Expression -- App ")
-
-                return args[-1]
+                return n
 
             else:
                 # don't care about op
                 # function should be the first argument
-                pass
+                caller = r[0]
+                fnEnv = caller.genCode(env, cg, getName)
+                assert isinstance(caller.reg, Value)
+                assert len(r) == 2
+                for i in range(1, len(r)):
+                    p = r[i]
+                    param = p.genCode(env, cg, getName)
+                    callEnv = cg.createParam(getName, fnEnv, param)
+                    rtn = cg.callFunc(searchEnv(env, caller.reg.id), callEnv, getName)
+
+                return rtn
+                r.reverse()
         elif cls == "Let":
             print("Let: ", self)
             scope = self.letScope
@@ -634,7 +621,7 @@ class Expression:
             x = None
             if r.isConsStr():
                 x = cg.emitGlobalStr(r.value + '\x00')
-                x = "i8* getelementptr inbounds ([{} x i8]* {}, i32 0, i32 0)".format(len(r.value), x)
+                x = "i8* getelementptr inbounds ([{} x i8]* {}, i32 0, i32 0)".format(len(r.value) + 1, x)
             else:
                 x = str(r.value)
                 # TODO char
@@ -659,11 +646,6 @@ class Expression:
                 x.calcType(env)
                 t[x.lab] = x.type
                 v[x.lab] = x.value
-
-            # index = 0
-            # for x in v:
-            #     v[x] = (v[x], index)
-            #     index += v[x][0].calcSize()
 
             self.type = t
             self.record = v

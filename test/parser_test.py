@@ -144,8 +144,18 @@ class ParserTest(unittest.TestCase):
         # self.assertEqual(True, True)
         # print("--------Code Generator Test Finished----------")
 
+        # print("--------Code Generator Test----------")
+        # x = 'val it : int = let val x : int = 110 in let val q : int = 2 in x end end'
+        # print("Test: ", x)
+        # x = parser.parse(x)
+        # env = typecheck(x)
+        # desent(0, x)
+        # codeGen(x, env)
+        # self.assertEqual(True, True)
+        # print("--------Code Generator Test Finished----------")
+
         print("--------Code Generator Test----------")
-        x = 'val it : int = let val x : int = 110 in let val q : int = 2 in x end end'
+        x = 'val it : int = let val s : string = "Hello World\n" in print s; 0 end'
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)
