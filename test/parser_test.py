@@ -58,14 +58,14 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_record_assign(self):
-        x = 'val {x = a : int, y = b : real} = {x = 1, y = 2.0}'
+        x = 'val it : int = let val {x = a : int, y = b : real} = {x = 1, y = 2.0} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
         # desent(0, x)
         typecheck(x)
         desent(0, x)
 
-        x = 'val x : {x : int, y : real} = {x = 1, y = 2.0}'
+        x = 'val it : int = let val x : {x : int, y : real} = {x = 1, y = 2.0} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
         # desent(0, x)
