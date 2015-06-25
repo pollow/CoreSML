@@ -8,6 +8,16 @@ class SMLSyntaxError(BaseException):
 
 IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*"}
 
+def calcLevels(env, name):
+    if env == None:
+        raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
+        return None
+    elif name in env:
+        print("Search Env: ", env[name])
+        return 0
+    else:
+        return 1 + calcLevels(env["__parent__"], name)
+
 
 def appendNewScope(env):
     scope = {"__parent__": env, "__len__": 4, "__children__": []}
@@ -23,18 +33,29 @@ def insertScope(env, name, value):
     if name in env:
         raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
     env[name] = (value, env["__len__"])
-    env["__len__"] += value.calcSize()
+    env["__len__"] += TyCon.calcSize(value.type)
 
 
-def searchEnv(env, name):
+def searchEnvO(env, name):
     if env == None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
         print("Search Env: ", env[name])
-        return env[name][0]
+        return env[name]
     else:
-        return searchEnv(env["__parent__"], name)
+        return searchEnvO(env["__parent__"], name)
+
+
+def getOffset(env, name):
+    return searchEnvO(env, name)[1]
+
+
+def searchEnv(env, name):
+    t = searchEnvO(env, name)
+    if isinstance(t, Value):
+        pass
+    return t[0]
 
 
 class Unit:
@@ -99,6 +120,21 @@ class TyCon:
             return self.type
         else: # datatype or alias
             return self.type
+
+    @staticmethod
+    def calcSize(type):
+        if type is None:
+            raise SMLSyntaxError("Type not determined when calculate size.")
+        elif isinstance(type, str):
+            if type == "char":
+                return 1
+            else:
+                return 4
+        elif isinstance(type, tuple): #function call
+            return 8 # function pointer and env
+        else:
+            return 4
+
 
 
 int_type    = TyCon([], "int", 0, 'int', 4)
@@ -210,19 +246,6 @@ class Value :
             return name
 
 
-    def calcSize(self):
-        if self.type is None:
-            raise SMLSyntaxError("Type not determined when calculate size.")
-        elif isinstance(self.type, str):
-            if self.type == "char":
-                return 1
-            else:
-                return 4
-        elif isinstance(self.type, tuple): #function call
-            return 8 # function pointer and env
-        else:
-            return 4
-
     def calcType(self, env):
         """
         :param env: dict[string, Value]
@@ -257,7 +280,7 @@ class Pattern :
     def calcType(self, env):
         if isinstance(self.value, Value):
             self.type = self.value.calcType(env)
-            self.size = self.value.calcSize()
+            self.size = TyCon.calcSize(self.type)
         elif isinstance(self.value, list):
             # record decompose binding
             t = {}
@@ -385,6 +408,14 @@ class valbind:
 
         if entry:
             cg.rtnMain(n1)
+        else:
+            n2, n3 = getName(), getName()
+            cg.emitInst("{} = load i32** %scope, align 4".format(n2))
+            cg.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, int(getOffset(env, self.pat.value.id)/4)))
+            cg.emitInst("store i32 {}, i32* {}, align 4".format(n1, n3))
+            cg.emitInst("; Valbind")
+
+
         # cg.assign(name, IRTyName[self.pat.type.name], self.pat.type.size)
         # if pat.type in primative_tycon:
         #     cg.assign(pat.offset, n1)
@@ -422,6 +453,7 @@ class Expression:
         type = None
         scope = None
         record = None
+        letScope = None
         self.cls = cls
         self.reg = reg
         self.dict = locals()
@@ -429,7 +461,8 @@ class Expression:
 
         self.type = type
         self.scope = scope
-        self.record = None
+        self.record = record
+        self.letScope = letScope
 
     def __repr__(self):
         return self.__class__.__name__
@@ -490,6 +523,7 @@ class Expression:
         elif cls == "Let":
             print("LET: ", self)
             scope = appendNewScope(env)
+            self.letScope = scope
             decs, exp = r
             for x in decs:
                 # create a new scope
@@ -549,42 +583,73 @@ class Expression:
         if cls == "App":
             if isinstance(r, Value):
                 print("R: ", r)
-                x = None
-                # v = searchEnv(env, r.id)
-                # self.type = v.calcType(env)
+                levels = calcLevels(env, r.id)
+                s = getName()
+                cg.emitInst("{} = load i32** %scope, align 4".format(s))
+                while levels:
+                    s1, s2 = getName(), getName()
+                    cg.emitInst("{} = load i32* {}, align 4".format(s1, s))
+                    cg.emitInst("{} = inttoptr i32 {} to i32*".format(s2, s1))
+                    s = s2
+                    levels -= 1
+
+                args = [int(getOffset(env, r.id)/4), s, getName()]
+
+                tmp = "{2} = getelementptr inbounds i32* {1}, i32 {0}".format(*args)
+                # TODO did not save to stack. Dangling pointer if freed.
+
+                for x in tmp.split("\n"):
+                    cg.emitInst(x)
+
+                cg.emitInst("; Expression -- App ")
+
+                return args[-1]
+
             else:
                 # don't care about op
                 # function should be the first argument
                 pass
         elif cls == "Let":
-            print("LET: ", self)
-            scope = appendNewScope(env)
+            print("Let: ", self)
+            scope = self.letScope
+            cg.pushNewScope(getName, scope["__len__"])
             decs, exp = r
             for x in decs:
                 # create a new scope
-                x.checkType(scope)
+                x.genCode(scope, cg, getName)
+
             if isinstance(exp, list):
                 for x in exp:
-                    x.calcType(scope)
-                self.type = exp[-1].type
+                    rtnName = x.genCode(scope, cg, getName)
             else:
-                exp.calcType(scope)
-                self.type = exp.type
+                rtnName = exp.genCode(scope, cg, getName)
+
+            cg.popScope(getName)
+
+            cg.emitInst("; Expression -- Let ")
+
+            return rtnName
         elif cls == "Constant":
+            print("Constant: ", self)
             x = None
             if r.isConsStr():
                 x = cg.emitGlobalStr(r.value + '\x00')
-                x = "i8* getelementptr inbounds ([{} x i8]* @.{}, i32 0, i32 0)".format(len(r.value)+1, x)
+                x = "i8* getelementptr inbounds ([{} x i8]* {}, i32 0, i32 0)".format(len(r.value), x)
             else:
                 x = str(r.value)
                 # TODO char
                 x = "{} {}".format(IRTyName[r.type], r.value)
 
-            align = r.calcSize()
-            n1 = getName()
+            align, n1 = TyCon.calcSize(self.type), getName()
             cg.allocate(n1, IRTyName[self.type], align)
             cg.emitInst("store {}, {}* {}, align {}".format(x, IRTyName[r.type], n1, align))
-            # cg.emitInst("{} = load {}* {}, align {}".format(resultName, IRTyName[r.type], n1, align))
+
+            if r.isConsStr():
+                n2 = getName()
+                cg.emitInst("{} = bitcast i8** {} to i32*".format(n2, n1))
+                n1 = n2
+
+            cg.emitInst("; Expression -- Constant ")
             return n1
         elif cls == "Record":
             t = {}
@@ -615,7 +680,5 @@ class Expression:
             exp = x[1].calcType(scope)
             self.type = (param, exp)
 
-
         self.update()
-        return self.type
 

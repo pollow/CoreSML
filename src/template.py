@@ -411,12 +411,24 @@ define void @rtError(i8* %s) #0 {
 ; Function Attrs: noreturn nounwind
 declare void @exit(i32) #3
 
+; Function Attrs: nounwind
+declare void @llvm.memset.p0i8.i32(i8* nocapture, i8, i32, i32, i1) #1
+
+
 """
 
 # @.str = private unnamed_addr constant [14 x i8] c"Hello world!\0A\00", align 1
 
 main = """ ; Function Attrs: nounwind
 define i32 @main() #0 {{
+  %scope = alloca i32*, align 4
+  %1 = call noalias i8* @malloc(i32 16) nounwind
+  %2 = bitcast i8* %1 to i32*
+  store i32* %2, i32** %scope, align 4
+  %3 = load i32** %scope, align 4
+  %4 = bitcast i32* %3 to i8*
+  call void @llvm.memset.p0i8.i32(i8* %4, i8 1, i32 16, i32 4, i1 false)
+  ; scope = [parent, built-in function env which should be zero]
 
 {}
 

@@ -7,9 +7,9 @@ init = {
     '__children__' : [],
     'print' : (Value(tycon=TyCon(name="fn", type=(string_type, unit_type)), id='print'), 4),
     'mul'   : (Value(tycon=TyCon(name="fn", type=(
-        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 12),
+        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 8),
     'add'   : (Value(tycon=TyCon(name="fn", type=(
-        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 20),
+        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 12),
 }
 
 def typecheck(p):
