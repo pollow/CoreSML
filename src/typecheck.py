@@ -5,11 +5,11 @@ init = {
     '__parent__' : None,
     '__len__' : 0,
     '__children__' : [],
-    'print' : (Value(tycon=TyCon(name="fn", type=(string_type, unit_type)), id='print'), 0),
+    'print' : (Value(tycon=TyCon(name="fn", type=(string_type, unit_type)), id='print'), 4),
     'mul'   : (Value(tycon=TyCon(name="fn", type=(
-        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 0),
+        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 12),
     'add'   : (Value(tycon=TyCon(name="fn", type=(
-        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 0),
+        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 20),
 }
 
 def typecheck(p):
@@ -18,6 +18,7 @@ def typecheck(p):
 
     if type(p) == Declaration:
         init["__children__"] = []
+        init["__len__"] = 0
         if "it" in init:
             del init["it"]
         p.checkType(init)
@@ -25,4 +26,6 @@ def typecheck(p):
     print("Type Check finished! ")
     print("The Symbol Table is:")
     pprint.pprint(init)
+
+    return init
 

@@ -149,8 +149,8 @@ class Declaration :
         else:
             return True
 
-    def genCode(self, getName):
-        self.bind.genCode()
+    def genCode(self, env, cg, getName, entry = False):
+        self.bind.genCode(env, cg, getName, entry)
 
 
 
@@ -231,35 +231,14 @@ class Value :
         self.type = Value.flattenType(env, self.tycon)
         self.update()
         return self.type
-        # name = self.tycon.checkType(env)
-       #  if isinstance(name, tuple):
-       #      # A function
-       #      rtn = (name[0].checkType(env), name[1].checkType(env))
-       #      # rtn = (self.flattenType(env, name[0]), self.flattenType(env, name[1]))
-       #      print("FN: ", rtn)
-       #      return rtn #(self.tycon[0].checkType(), self.tycon[1].checkType())
-       #  elif isinstance(name, dict): # records and user defined datatypes are all record
-       #      # just a record type descriptor
-       #      t = {}
-       #      tys = self.tycon.type
-       #      for x in tys:
-       #          t[x] = tys[x].type
-
-       #      return t
-       #  elif isinstance(name, str):
-       #      return name
-       #  else:
-       #      # get a way to check if it is a datatype
-       #      # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
-       #     return name
-
-
 
 
 class Pattern :
     def __init__(self, value, type=None):
         record = None
+        size = None
         self.type = type
+        self.size = size
         self.value = value
         self.record = record
         self.dict = locals()
@@ -278,6 +257,7 @@ class Pattern :
     def calcType(self, env):
         if isinstance(self.value, Value):
             self.type = self.value.calcType(env)
+            self.size = self.value.calcSize()
         elif isinstance(self.value, list):
             # record decompose binding
             t = {}
@@ -286,9 +266,14 @@ class Pattern :
                 t[x.lab] = x.calcType(env)
                 v[x.lab] = x.value # a issue here, nested pattern binding
 
+            # index = 0
+            # for x in v:
+            #     v[x] = (v[x], index)
+            #     index += v[x][0].calcSize()
+
             self.type = t
             self.record = v
-
+            print("Record Pattern: ", self.record)
 
         self.update()
         return self.type
@@ -387,14 +372,22 @@ class valbind:
         else:
             return False
 
-    def genCode(self, cg, getName):
+    def genCode(self, env, cg, getName, entry = False):
+        if entry:
+            cg.enterMain()
         pat = self.pat
-        name = getName()
-        cg.allocate(name, IRTyName[pat.type.name], self.pat.type.size)
-        self.exp.genCode(cg, getName, name)
+        # only 1 assginment
+        # cg.allocate(n1, IRTyName[pat.type], self.pat.size)
+        # cg.reserve(n1, IRTyName[pat.type])
+        rtnName = self.exp.genCode(env, cg, getName)
+        n1 = getName()
+        cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
+
+        if entry:
+            cg.rtnMain(n1)
         # cg.assign(name, IRTyName[self.pat.type.name], self.pat.type.size)
-        if pat.type in primative_tycon:
-            cg.assign(pat.offset, name)
+        # if pat.type in primative_tycon:
+        #     cg.assign(pat.offset, n1)
 
 
 class datbind:
@@ -519,8 +512,97 @@ class Expression:
                 t[x.lab] = x.type
                 v[x.lab] = x.value
 
+            # index = 0
+            # for x in v:
+            #     v[x] = (v[x], index)
+            #     index += v[x][0].calcSize()
+
             self.type = t
             self.record = v
+            print("Record Expression: ", self.record)
+        elif cls == "Fn":
+            assert len(self.reg) == 1 # datatype is not supported not
+            x = r[0]
+            """ :type:(Pattern, Expression)"""
+            param = x[0].calcType(env)
+            scope = appendNewScope(env)
+            # bind to new scope
+            # check expression return type
+            Expression.flattenBind(scope, x[0])
+            exp = x[1].calcType(scope)
+            self.type = (param, exp)
+
+
+        self.update()
+        return self.type
+
+    def genCode(self, env, cg, getName):
+        """
+        :param cg: CodeGenerator
+        :param resultName: String
+        :return:
+        """
+        cls = self.cls
+        r = self.reg
+        """ :type : list[exp] | Value | [RecordItem] """
+        self.scope = env
+        if cls == "App":
+            if isinstance(r, Value):
+                print("R: ", r)
+                x = None
+                # v = searchEnv(env, r.id)
+                # self.type = v.calcType(env)
+            else:
+                # don't care about op
+                # function should be the first argument
+                pass
+        elif cls == "Let":
+            print("LET: ", self)
+            scope = appendNewScope(env)
+            decs, exp = r
+            for x in decs:
+                # create a new scope
+                x.checkType(scope)
+            if isinstance(exp, list):
+                for x in exp:
+                    x.calcType(scope)
+                self.type = exp[-1].type
+            else:
+                exp.calcType(scope)
+                self.type = exp.type
+        elif cls == "Constant":
+            x = None
+            if r.isConsStr():
+                x = cg.emitGlobalStr(r.value + '\x00')
+                x = "i8* getelementptr inbounds ([{} x i8]* @.{}, i32 0, i32 0)".format(len(r.value)+1, x)
+            else:
+                x = str(r.value)
+                # TODO char
+                x = "{} {}".format(IRTyName[r.type], r.value)
+
+            align = r.calcSize()
+            n1 = getName()
+            cg.allocate(n1, IRTyName[self.type], align)
+            cg.emitInst("store {}, {}* {}, align {}".format(x, IRTyName[r.type], n1, align))
+            # cg.emitInst("{} = load {}* {}, align {}".format(resultName, IRTyName[r.type], n1, align))
+            return n1
+        elif cls == "Record":
+            t = {}
+            v = {}
+            for x in r:
+                assert isinstance(x, RecordItem)
+                x.calcType(env)
+                t[x.lab] = x.type
+                v[x.lab] = x.value
+
+            # index = 0
+            # for x in v:
+            #     v[x] = (v[x], index)
+            #     index += v[x][0].calcSize()
+
+            self.type = t
+            self.record = v
+            print("Record Expression: ", self.record)
         elif cls == "Fn":
             assert len(self.reg) == 1 # datatype is not supported not
             x = r[0]
