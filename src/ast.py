@@ -10,9 +10,20 @@ IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*"}
 
 
 def appendNewScope(env):
-    scope = {"__parent__": env, "__len__": 0, "__children__": []}
+    scope = {"__parent__": env, "__len__": 4, "__children__": []}
     env["__children__"].append(scope)
     return scope
+
+
+def insertScope(env, name, value):
+    """
+    :param value: Value
+    :return:
+    """
+    if name in env:
+        raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
+    env[name] = (value, env["__len__"])
+    env["__len__"] += value.calcSize()
 
 
 def searchEnv(env, name):
@@ -20,7 +31,8 @@ def searchEnv(env, name):
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
-        return env[name]
+        print("Search Env: ", env[name])
+        return env[name][0]
     else:
         return searchEnv(env["__parent__"], name)
 
@@ -144,11 +156,13 @@ class Declaration :
 
 class Value :
     def __init__(self, id = None, value = None, tycon = None, vcon = None, wildcard = False, op = False):
+        type = None
         self.id = id
         self.value = value
         self.tycon = tycon # A TyCon instance
         self.vcon = vcon
         self.op = op
+        self.type = type
         self.wildcard = wildcard
         self.dict = locals()
         self.dict.pop('self', None)
@@ -171,11 +185,10 @@ class Value :
         for x in self.dict:
             self.dict[x] = getattr(self, x)
 
-
     @staticmethod
     def flattenType(env, tycon):
         print("FlattenType: ", tycon)
-        name = tycon.checkType(env)
+        name = tycon.calcType(env)
         if isinstance(name, tuple):
             # A function
             rtn = (Value.flattenType(env, name[0]), Value.flattenType(env, name[1]))
@@ -197,12 +210,27 @@ class Value :
             return name
 
 
+    def calcSize(self):
+        if self.type is None:
+            raise SMLSyntaxError("Type not determined when calculate size.")
+        elif isinstance(self.type, str):
+            if self.type == "char":
+                return 1
+            else:
+                return 4
+        elif isinstance(self.type, tuple): #function call
+            return 8 # function pointer and env
+        else:
+            return 4
+
     def calcType(self, env):
         """
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
-        return Value.flattenType(env, self.tycon)
+        self.type = Value.flattenType(env, self.tycon)
+        self.update()
+        return self.type
         # name = self.tycon.checkType(env)
        #  if isinstance(name, tuple):
        #      # A function
@@ -340,7 +368,7 @@ class valbind:
             for x in v:
                 self.recordPatBind(env, x.value)
         elif isinstance(v, Value): # normal bind
-            env[v.id] = v
+            insertScope(env, v.id, v) # env[v.id] = v
 
 
     def checkType(self, env):
@@ -353,7 +381,8 @@ class valbind:
             if isinstance(self.pat.value, list): # reocord
                 self.recordPatBind(env, self.pat)
             else:
-                env[self.pat.value.id] = self.pat.value
+                insertScope(env, self.pat.value.id, self.pat.value)
+                # env[self.pat.value.id] = self.pat.value
             return True
         else:
             return False
@@ -418,7 +447,8 @@ class Expression:
     @staticmethod
     def flattenBind(env, pat):
         if isinstance(pat.value, Value):
-            env[pat.value.id] = pat.value
+            insertScope(env, pat.value.id, pat.value)
+            # env[pat.value.id] = pat.value
         elif isinstance(pat.value, list):
             for x in pat.value:
                 Expression.flattenBind(env, x.value)
@@ -506,6 +536,4 @@ class Expression:
 
         self.update()
         return self.type
-
-
 

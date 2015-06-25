@@ -43,7 +43,7 @@ class ParserTest(unittest.TestCase):
 
     def test_hello(self):
         x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
@@ -61,36 +61,36 @@ class ParserTest(unittest.TestCase):
         x = 'val {x = a : int, y = b : real} = {x = 1, y = 2.0}'
         print("Test: ", x)
         x = parser.parse(x)
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
 
         x = 'val x : {x : int, y : real} = {x = 1, y = 2.0}'
         print("Test: ", x)
         x = parser.parse(x)
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
 
         x = 'val it : int = let ' \
-            'val a : int = 10' \
+            'val a : int = 10 ' \
             'val x : {x : int, y : real} = {x = a, y = 2.0}' \
             'in x; 0 end'
 
         print("Test: ", x)
         x = parser.parse(x)
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
 
         x = 'val it : int = let ' \
-            'val a : int = 10' \
+            'val a : int = 10 ' \
             'val x : {x : int, y : {a : int, b : int}} = {x = a, y = {a = 2, b = 3}} ' \
             'in x; 0 end'
 
         print("Test: ", x)
         x = parser.parse(x)
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
@@ -103,7 +103,7 @@ class ParserTest(unittest.TestCase):
             "in double x end"
         print("Test: ", x)
         x = parser.parse(x)
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
 
@@ -116,7 +116,7 @@ class ParserTest(unittest.TestCase):
             "in sum {1=x, 2=x, 3=x} end"
         print("Test: ", x)
         x = parser.parse(x)
-        desent(0, x)
+        # desent(0, x)
         typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)

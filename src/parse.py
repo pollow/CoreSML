@@ -4,7 +4,7 @@ from ast import *
 
 start = 'dec'
 
-debug = 1
+debug = 0
 
 
 def p_program(p):
@@ -13,8 +13,7 @@ def p_program(p):
                 | exp
                 | dec
     '''
-    if debug==1:
-        print('     PROGRAM')
+    if debug: print('     PROGRAM')
 
     if len(p) == 2:
         p[0] = [ p[1] ]
@@ -24,25 +23,25 @@ def p_program(p):
 
 def p_cons_int(p):
     'cons : INT_VAL'
-    print("int : ", p[1])
+    if debug: print("int : ", p[1])
     p[0] = Value(value=p[1], tycon=int_type)
 
 
 def p_cons_real(p):
     'cons : REAL_VAL'
-    print("real : ", p[1])
+    if debug: print("real : ", p[1])
     p[0] = Value(value=p[1], tycon=real_type)
 
 
 def p_cons_str(p):
     'cons : STRING_VAL'
-    print("string : ", p[1])
+    if debug: print("string : ", p[1])
     p[0] = Value(value=p[1], tycon=string_type)
 
 
 def p_cons_char(p):
     'cons : CHAR_VAL'
-    print("char : ", p[1])
+    if debug: print("char : ", p[1])
     p[0] = Value(value=p[1], tycon=char_type)
 
 
@@ -50,14 +49,14 @@ def p_vid(p):
     ''' vid : symbol
             | ALPHANUMERIC
     '''
-    print(" VID : ", p[1])
+    if debug: print(" VID : ", p[1])
     p[0] = p[1]
 
 
 def p_tycon(p):
     ''' tycon : vid
     '''
-    print(" TYCON : ", p[1])
+    if debug: print(" TYCON : ", p[1])
     p[0] = p[1]
 
 
@@ -65,7 +64,7 @@ def p_tyvar(p):
     ''' tyvar : "'" vid
     '''
     p[0] = "'" + p[2]
-    print(" TYVAR : ", p[0])
+    if debug: print(" TYVAR : ", p[0])
 
 
 def p_lab(p):
@@ -77,7 +76,7 @@ def p_lab(p):
     except ValueError:
         p[0] = p[1]
 
-    print(" LAB : ", p[0])
+    if debug: print(" LAB : ", p[0])
 
 
 # (*---------------------------------------------------------------*)
@@ -145,7 +144,7 @@ def p_pat(p):
             | pat vid pat
             | pat ':' ty
     '''
-    print(" PAT ")
+    if debug: print(" PAT ")
     if len(p) == 2: # atpat
         p[0] = p[1]
     elif p[1] == "op": # op vid atpat
@@ -204,7 +203,7 @@ def p_aty(p):
             | '{' '}'
             | '{' tyrow '}'
     '''
-    print(" TY ")
+    if debug: print(" TY ")
     if len(p) == 2:
         p[0] = p[1]
     elif p[1] == '(':
@@ -220,7 +219,7 @@ def p_tyrow(p):
     ''' tyrow   : lab ':' ty
                 | lab ':' ty ',' tyrow
     '''
-    print(" TYROW : ", len(p))
+    if debug: print(" TYROW : ", len(p))
     if len(p) == 4:
         p[0] = TyCon(type={p[1] : p[3]}, name='record')
     else:
@@ -232,7 +231,7 @@ def p_tyseq_l(p):
     ''' tyseq_l : ty ',' ty
                 | ty ',' tyseq_l
     '''
-    print(" TYSEQ_LIST ")
+    if debug: print(" TYSEQ_LIST ")
     p[0] = [ p[1] ] + (p[3] if type(p[3]) == list else [ p[3] ])
 
 
@@ -277,7 +276,7 @@ def p_exprow(p):
     ''' exprow  : lab '=' exp
                 | lab '=' exp ',' exprow
     '''
-    print(" EXPROW ")
+    if debug: print(" EXPROW ")
     if len(p) == 4:
         p[0] = [ RecordItem(p[1], p[3]) ]
     else:
@@ -305,7 +304,7 @@ def p_exp(p):
             | IF exp THEN exp ELSE exp
             | FN match
     '''
-    print(" EXP ")
+    if debug: print(" EXP ")
     if len(p) == 2:
         if len(p[1]) == 1:
             p[0] = p[1][0]
@@ -348,7 +347,7 @@ def p_match(p):
     ''' match   : mrule
                 | mrule '|' match
     '''
-    print(" MATCH ")
+    if debug: print(" MATCH ")
     if len(p) == 2:
         p[0] = [ p[1] ]
     else:
@@ -358,7 +357,7 @@ def p_match(p):
 def p_mrule(p):
     ''' mrule : pat LEAD_TO exp
     '''
-    print(" MRULE ")
+    if debug: print(" MRULE ")
     p[0] = (p[1], p[3])
 
 
@@ -367,7 +366,7 @@ def p_decs(p):
                 | dec decs
                 | dec ';' decs
     '''
-    print(" DECS ")
+    if debug: print(" DECS ")
     if len(p) == 2:
         p[0] = []
     elif len(p) == 3:
@@ -381,7 +380,7 @@ def p_dec(p):
             | TYPE typbind
             | DATATYPE datbind
     '''
-    print(" DEC ", p[1])
+    if debug: print(" DEC ", p[1])
     if  p[1] == "val":
             p[0] = Declaration(p[1], p[2])
     elif p[1] == "type":
@@ -394,7 +393,7 @@ def p_valbind(p):
     ''' valbind : pat '=' exp
                 | REC fvalbind
     '''
-    print(" VALBIND ")
+    if debug: print(" VALBIND ")
     if len(p) == 3:
         p[0] = p[2]
         p[0].rec = True
@@ -412,7 +411,7 @@ def p_typbind(p):
     ''' typbind : tyvarseq tycon '=' ty
                 | tycon '=' ty
     '''
-    print(" TYPBIND ")
+    if debug: print(" TYPBIND ")
     if len(p) == 4:
         p[0] = typbind([], p[1], p[3])
     elif len(p) == 5:
@@ -423,7 +422,7 @@ def p_datbind(p):
     ''' datbind : tyvarseq tycon '=' conbind
                 | tycon '=' conbind
     '''
-    print(" DATBIND ")
+    if debug: print(" DATBIND ")
     if len(p) == 4:
         p[0] = [ datbind([], p[1], p[3]) ]
     elif len(p) == 5:
@@ -434,7 +433,7 @@ def p_conbind(p):
     ''' conbind : vid connext
                 | vid OF ty connext
     '''
-    print(" CONBIND ")
+    if debug: print(" CONBIND ")
     if len(p) == 3:
         p[0] = [ (Value(id = p[1], op=False), unit_type) ] + p[2]
     else:
@@ -445,7 +444,7 @@ def p_conbind_op(p):
     ''' conbind : OP vid connext
                 | OP vid OF ty connext
     '''
-    print(" CONBIND ")
+    if debug: print(" CONBIND ")
     if len(p) == 4:
         p[0] = [ (Value(id = p[1], op=True), unit_type) ] + p[2]
     else:
@@ -456,7 +455,7 @@ def p_connext(p):
     ''' connext : empty
                 | '|' conbind
     '''
-    print(" CONNEXT ")
+    if debug: print(" CONNEXT ")
     if len(p) == 2:
         p[0] = p[1]
     else:
@@ -471,7 +470,7 @@ def p_tyvarseq(p):
     ''' tyvarseq    : tyvar
                     | '(' tyvarseq_l ')'
     '''
-    print(" TYVARSEQ ", len(p))
+    if debug: print(" TYVARSEQ ", len(p))
     if len(p) == 2:
         p[0] = [ p[1] ]
     else:
@@ -482,7 +481,7 @@ def p_tyvarseq_l(p):
     ''' tyvarseq_l  : tyvar
                     | tyvar ',' tyvarseq_l
     '''
-    print(" TYVARSEQ_L ")
+    if debug: print(" TYVARSEQ_L ")
     if len(p) == 2:
         p[0] = [ p[1] ]
     else:
@@ -491,7 +490,7 @@ def p_tyvarseq_l(p):
 
 def p_empty(p):
     'empty : '
-    print(" EMPTY ")
+    if debug: print(" EMPTY ")
     p[0] = []
 
 
@@ -505,7 +504,7 @@ def p_symbol(p):
             | '#'
     '''
     p[0] = p[1]
-    print(' symbol ')
+    if debug: print(' symbol ')
 
 
 parser = yacc.yacc(debug=True)

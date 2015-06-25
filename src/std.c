@@ -133,6 +133,11 @@ char *concat(uint32_t *env) {
     return s;
 }
 
+void rtError(const char *s) {
+    printf("Runtime Error: %s\n", s);
+    exit(0);
+}
+
 int main() {
     union primative *env = (union primative *)malloc(3 * sizeof(union primative));
     env[0].i = 0; env[1].i = 100; env[2].i = 3;
@@ -162,6 +167,9 @@ int main() {
     env[0].i = 0; env[1].s = "78123.326"; env[2].s = "ABCDEFG";
     printf("%s\n", concat((uint32_t *)env));
 
+    rtError("Raise A Exception.");
+
+    printf("Should never reach here.\n");
     return 0;
 }
 
