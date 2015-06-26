@@ -122,6 +122,13 @@ class CodeGenerator:
         self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n2))
         self.emitInst("; fillRecord")
 
+    def extractRecord(self, record, offset, getName):
+        # return a pointer
+        n = getName()
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n, record, int(offset/4)))
+        self.emitInst("; extractRecord")
+        return n
+
     def createRecord(self, size, getName):
         n1, n2 = getName(), getName()
         self.emitInst("{} = call noalias i8* @malloc(i32 {}) nounwind".format(n1, size))

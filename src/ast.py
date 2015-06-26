@@ -316,11 +316,6 @@ class Pattern :
                 t[x.lab] = x.calcType(env)
                 v[x.lab] = x.value # a issue here, nested pattern binding
 
-            # index = 0
-            # for x in v:
-            #     v[x] = (v[x], index)
-            #     index += v[x][0].calcSize()
-
             self.type = t
             self.record = v
             print("Record Pattern: ", self.record)
@@ -440,8 +435,14 @@ class valbind:
             cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
             cg.rtnMain(n1)
         else:
-            cg.fillScope(rtnName, int(getOffset(env, self.pat.value.id)/4), getName)
-            cg.emitInst("; Valbind")
+            if isinstance(pat.value, list):
+                for x in pat.value:
+                    tmp = cg.extractRecord(rtnName, self.exp.record[x.lab], getName)
+                    cg.fillScope(tmp, int(getOffset(env, x.value.value.id)/4), getName)
+                cg.emitInst("; Valbind De-record")
+            else:
+                cg.fillScope(rtnName, int(getOffset(env, self.pat.value.id)/4), getName)
+                cg.emitInst("; Valbind")
 
         # cg.assign(name, IRTyName[self.pat.type.name], self.pat.type.size)
         # if pat.type in primative_tycon:
@@ -743,10 +744,9 @@ class Expression:
             align, n1 = TyCon.calcSize(self.type), getName()
             cg.allocate(n1, IRTyName[self.type], align)
             cg.emitInst("store {}, {}* {}, align {}".format(x, IRTyName[r.type], n1, align))
-
-            if r.isConsStr():
+            if r.type != 'int':
                 n2 = getName()
-                cg.emitInst("{} = bitcast i8** {} to i32*".format(n2, n1))
+                cg.emitInst("{} = bitcast {}* {} to i32*".format(n2, IRTyName[r.type], n1))
                 n1 = n2
 
             cg.emitInst("; Expression -- Constant ")

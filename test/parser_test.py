@@ -150,19 +150,9 @@ class ParserTest(unittest.TestCase):
         # self.assertEqual(True, True)
         # print("--------Code Generator Test Finished----------")
 
-        print("--------Code Generator Test----------")
-        x = 'val it : int = let val s : string = "Hello World\n" in ' \
-            'print s; let val s : string = "Goodbye!\n" in print s end; 0 end'
-        print("Test: ", x)
-        x = parser.parse(x)
-        env = typecheck(x)
-        desent(0, x)
-        codeGen(x, env)
-        self.assertEqual(True, True)
-        print("--------Code Generator Test Finished----------")
-
         # print("--------Code Generator Test----------")
-        # x = 'val it : int = let val s : {1:int, 2:real} = {1 = 1, 2 = 3.0} in 0 end '
+        # x = 'val it : int = let val s : string = "Hello World\n" in ' \
+        #     'print s; let val s : string = "Goodbye!\n" in print s end; 0 end'
         # print("Test: ", x)
         # x = parser.parse(x)
         # env = typecheck(x)
@@ -170,6 +160,17 @@ class ParserTest(unittest.TestCase):
         # codeGen(x, env)
         # self.assertEqual(True, True)
         # print("--------Code Generator Test Finished----------")
+
+        print("--------Code Generator Test----------")
+        x = 'val it : int = let val {1 = x : int, 2 = y : real, 3 = z : real} : ' \
+            '{1:int, 2:real, 3:real} = {1 = 3, 2 = 3.0, 3 = 111.11} in x end '
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
 
 if __name__ == '__main__':
     unittest.main()
