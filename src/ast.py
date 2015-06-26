@@ -13,7 +13,7 @@ def calcLevels(env, name):
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
-        print("Search Env: ", env[name])
+        # print("Search Env: ", env[name])
         return 0
     else:
         return 1 + calcLevels(env["__parent__"], name)
@@ -68,7 +68,7 @@ def searchEnvO(env, name, typ=None):
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
-        print("Search Env: ", env[name])
+        # print("Search Env: ", env[name])
         return env[name]
     else:
         return searchEnvO(env["__parent__"], name)
@@ -207,6 +207,7 @@ class Declaration :
         return self.__class__.__name__
 
     def checkType(self, env):
+        # print("dec checkType:",self.bind.checkType(env))
         if not self.bind.checkType(env):
             raise SMLSyntaxError("Valbind with different type.")
         else:
@@ -250,19 +251,20 @@ class Value :
 
     @staticmethod
     def flattenType(env, tycon):
-        print("FlattenType: ", tycon)
+        # print("FlattenType: ", tycon)
+        if tycon==None:
+            return None
         name = tycon.calcType(env)
         if isinstance(name, tuple):
             # A function
             rtn = (Value.flattenType(env, name[0]), Value.flattenType(env, name[1]))
-            print("FN: ", rtn)
+            # print("FN: ", rtn)
             return rtn
         elif isinstance(name, dict): # records and user defined datatypes are all record
             # just a record type descriptor
             t = {}
             for x in name:
                 t[x] = Value.flattenType(env, name[x])
-
             return t
         elif isinstance(name, str):
             return name
@@ -278,7 +280,9 @@ class Value :
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
+        print("before",self)
         self.type = Value.flattenType(env, self.tycon)
+        print("after",self)
         self.update()
         return self.type
 
@@ -323,7 +327,7 @@ class Pattern :
 
             self.type = t
             self.record = v
-            print("Record Pattern: ", self.record)
+            # print("Record Pattern: ", self.record)
         elif isinstance(self.value,tuple):
             tmp=searchEnvO(env,self.value,1)
             if tmp==False:
@@ -411,15 +415,51 @@ class valbind:
         elif isinstance(v, Value): # normal bind
             insertScope(env, v.id, v) # env[v.id] = v
 
+    @staticmethod
+    def checkTypeExpPat(expType,patType):
+        if type(expType)!=type(patType):
+            return False
+        if isinstance(expType,str):
+            return expType==patType
+        elif isinstance(expType,tuple):
+            return valbind.checkTypeExpPat(expType[1],patType[1]) and valbind.checkTypeExpPat(expType[0],patType[0])
+        elif isinstance(expType,dict):
+            key1=expType.keys()
+            key2=patType.keys()
+            if key1 & key2 == key1 | key2 or key1 <= key2 and key2-key1 == {'__wildCard__'} or key1 >= key2 and key1-key2 == {'__wildCard__'}:
+                for key in key1 & key2:
+                    if not valbind.checkTypeExpPat(expType[key],patType[key]):
+                        return False
+                return True
+            elif not '__wildCard__' in key1 | key2:
+                return False
+            elif not  '__wildCard__' in key1 & key2 and ( '__wildCard__' in key1 and expType['__wildCard__']==False or '__wildCard__' in key2 and expType['__wildCard__']==False ):
+                return False
+            elif not '__wildCard__' in key1 & key2 and '__wildCard__' in key1 and expType['__wildCard__']==True and key2 > (key1 - '__wildCard__'):
+                for key in key1-'__wildCard__':
+                    if not valbind.checkTypeExpPat(expType[key],patType[key]):
+                        return False
+                return True
+            elif '__wildCard__' in key1 & key2 and expType['__wildCard__']==True and patType['__wildCard__']==True:
+                for key in (key1 & key2) -'__wildCard__':
+                    if not valbind.checkTypeExpPat(expType[key],patType[key]):
+                        return False
+                return True
+            ##TODO
+            return False
 
     def checkType(self, env):
         """
         :param env: dict
         :return: bool
         """
-        if self.pat.calcType(env) == self.exp.calcType(env): # primative type
-            print("valbind checked: ", self.pat.value)
-            if isinstance(self.pat.value, list): # reocord
+        print("valbind pat:",self.pat.calcType(env))
+        print("valbind exp:",self.exp.calcType(env))
+        patType=self.pat.calcType(env)
+        expType=self.exp.calcType(env)
+        if patType == expType or isinstance(expType,tuple) and valbind.checkTypeExpPat(expType,patType) : 
+            # print("valbind checked: ", self.pat.value)
+            if isinstance(self.pat.value, list): # record
                 self.recordPatBind(env, self.pat)
             else:
                 insertScope(env, self.pat.value.id, self.pat.value)
@@ -507,7 +547,7 @@ class Expression:
                 Expression.flattenBind(env, x.value)
         elif isinstance(pat.value,tuple):
             for x in (pat.value)[1].value:
-                Expression.flattenBind(env,x.value)
+                Expression.flattenBind(env, x.value)
 
 
 
@@ -516,7 +556,7 @@ class Expression:
         :param applist: list[Expression]
         :param env: dict
         """
-
+        # print("calcApplist")
         applist[0].calcType(env)
         rtn = applist[0].type # function type
 
@@ -524,7 +564,7 @@ class Expression:
             x = applist[i]
             """ :type : Expression """
             x.calcType(env)
-            print('Function call ', i, ' : ', rtn)
+            # print('Function call ', i, ' : ', rtn)
             if rtn[0] != x.type:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
@@ -536,7 +576,7 @@ class Expression:
         for x in self.dict:
             self.dict[x] = getattr(self, x)
 
-    def calcFun(self,env,typ=1):
+    def calcFun(self,env):
         #assert len(self.reg) == 1 # datatype is not supported not
         #x = r[0]
         patType=None
@@ -544,6 +584,7 @@ class Expression:
         for x in self.reg: 
             """ :type:(Pattern, Expression)"""
             if isinstance(x[0].value,Value):# 1.single value 2.constant 3.wildcard 4.datatype without param
+                # print("calcFun::value") ######
                 if x[0].value.wildcard==True: # wildcard
                     pass #do nothing
                 else :
@@ -553,7 +594,7 @@ class Expression:
                             raise SMLSyntaxError("Parameters doesn't match!")
                         else:
                             patType=param
-                    elif param==None: # datatype without param
+                    elif param==None: # datatype without param; single value without ty mentioned
                         tmp=searchEnvO(env,x[0].value,1)
                         if tmp==False: # cannot find datatype in env
                             raise SMLSyntaxError("Parameters doesn't match!")
@@ -563,6 +604,7 @@ class Expression:
                             patType=tmp;
 
             elif isinstance(x[0].value,tuple): #datatype with param
+                # print("calcFun:: tuple")   #####
                 tmp=searchEnvO(env,x[0].value,1)
                 if tmp==False:
                     raise SMLSyntaxError("Parameters doesn't match!")
@@ -572,6 +614,7 @@ class Expression:
                     patType=tmp
 
             elif isinstance(x[0].value,list): #[RecordItem,...]
+                # print("calcFun::list") #####
                 t={"__wildCard__":False}
                 for element in x[0].value:
                     if element.value==None and element.lab==None:
@@ -608,6 +651,7 @@ class Expression:
             scope = appendNewScope(env)
             # bind to new scope
             # check expression return type
+            # print("before exp.flattern")
             Expression.flattenBind(scope, x[0])
             exp = x[1].calcType(scope)
             if expType != None and expType != exp:
@@ -618,14 +662,20 @@ class Expression:
         return (patType,expType)
 
     def calcType(self, env):
-        print("Get into an expression, the scope is: ", env)
+        # print("Get into an expression, the scope is: ", env)
+        # print(env['mul'][0])
+        # print(env['mul'][0].id)
+        # print(env['mul'][0].tycon)
+        # print(env['mul'][0].tycon.type)
+        # print((env['mul'][0].tycon.type)[0])
+        # print(env['mul'][0].tycon.type[1])
         cls = self.cls
         r = self.reg
         """ :type : list[exp] | Value | [RecordItem] """
         self.scope = env
         if cls == "App":
             if isinstance(r, Value):
-                print("R: ", r)
+                # print("R: ", r)
                 v = searchEnv(env, r.id)
                 self.type = v.calcType(env)
             else:
@@ -633,7 +683,7 @@ class Expression:
                 # function should be the first argument
                 self.type = self.calcAppList(r, env)
         elif cls == "Let":
-            print("LET: ", self)
+            # print("LET: ", self)
             scope = appendNewScope(env)
             self.letScope = scope
             decs, exp = r
@@ -661,8 +711,9 @@ class Expression:
 
             self.type = t
             self.record = v
-            print("Record Expression: ", self.record)
+            # print("Record Expression: ", self.record)
         elif cls == "Fn":
+            # print("before FN")
             self.type=self.calcFun(env)
 
         self.update()
@@ -680,7 +731,7 @@ class Expression:
         self.scope = env
         if cls == "App":
             if isinstance(r, Value):
-                print("R: ", r)
+                # print("R: ", r)
                 n = cg.extractVar(int(getOffset(env, r.id)/4), calcLevels(env, r.id), getName)
                 cg.emitInst("; Expression -- App ")
                 return n
@@ -701,7 +752,7 @@ class Expression:
                 return rtn
                 r.reverse()
         elif cls == "Let":
-            print("Let: ", self)
+            # print("Let: ", self)
             scope = self.letScope
             cg.pushNewScope(getName, scope["__len__"])
             decs, exp = r
@@ -721,7 +772,7 @@ class Expression:
 
             return rtnName
         elif cls == "Constant":
-            print("Constant: ", self)
+            # print("Constant: ", self)
             x = None
             if r.isConsStr():
                 x = cg.emitGlobalStr(r.value + '\x00')

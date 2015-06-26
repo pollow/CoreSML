@@ -33,27 +33,31 @@ def desent(level, x):
 
 
 class ParserTest(unittest.TestCase):
+    '''
     def test_ast(self):
-        x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
+        x = parser.parse('val f : int->int = fn 0 => 0 | x : int => mul {1=x,2=mul{1=x, 2=2}}')
         desent(0, x)
         self.assertEqual(True, True)
-'''
+
     def test_hello(self):
-        x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
+        # x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
+        x = parser.parse('val it : int->int  = fn x : int => mul {1=x , 2 = mul{1=x, 2=2}}')
         # desent(0, x)
         typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
-
+'''
     def test_call_error(self):
-        x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print 1; 0 end')
-        with self.assertRaises(SMLSyntaxError):
-            typecheck(x)
-        x = parser.parse('val it : int = let val a : int = 1.0 val s : string = "Hello World!\n" in print s; 0 end')
-        with self.assertRaises(SMLSyntaxError):
-            typecheck(x)
+        # x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print 1; 0 end')
+        # with self.assertRaises(SMLSyntaxError):
+            # typecheck(x)
+        x = parser.parse('val add1 : {x:int , y:int}->int = fn {x=x:int, y=y:int} => add{1=x,2=y}')
+        typecheck(x)
+        desent(0, x)
+        # with self.assertRaises(SMLSyntaxError):
+            # typecheck(x)
         self.assertEqual(True, True)
-
+'''
     def test_record_assign(self):
         x = 'val it : int = let val {x = a : int, y = b : real} = {x = 1, y = 2.0} in 0 end'
         print("Test: ", x)
