@@ -651,23 +651,28 @@ class Expression:
             self.type = r.calcType(env)
         elif cls == "Record":
             t = {}
-            v = {}
+            v = {"__len__": 0}
             for x in r:
                 assert isinstance(x, RecordItem)
                 x.calcType(env)
                 t[x.lab] = x.type
-                v[x.lab] = x.value
-
-            # index = 0
-            # for x in v:
-            #     v[x] = (v[x], index)
-            #     index += v[x][0].calcSize()
+                v[x.lab] = v["__len__"]
+                v["__len__"] += 4
 
             self.type = t
             self.record = v
             print("Record Expression: ", self.record)
         elif cls == "Fn":
-            self.type=calcFun(env)
+            assert len(self.reg) == 1 # datatype is not supported not
+            x = r[0]
+            """ :type:(Pattern, Expression)"""
+            param = x[0].calcType(env)
+            scope = appendNewScope(env)
+            # bind to new scope
+            # check expression return type
+            Expression.flattenBind(scope, x[0])
+            exp = x[1].calcType(scope)
+            self.type = (param, exp)
 
         self.update()
         return self.type
@@ -747,17 +752,13 @@ class Expression:
             cg.emitInst("; Expression -- Constant ")
             return n1
         elif cls == "Record":
-            t = {}
-            v = {}
+            n1 = cg.createRecord(self.record["__len__"], getName)
             for x in r:
-                assert isinstance(x, RecordItem)
-                x.calcType(env)
-                t[x.lab] = x.type
-                v[x.lab] = x.value
+                rst = x.value.genCode(env, cg, getName)
+                cg.fillRecord(rst, n1, self.record[x.lab], getName)
 
-            self.type = t
-            self.record = v
-            print("Record Expression: ", self.record)
+            cg.emitInst("; Expression -- Record ")
+            return n1
         elif cls == "Fn":
             assert len(self.reg) == 1 # datatype is not supported not
             x = r[0]
