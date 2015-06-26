@@ -18,18 +18,37 @@ class CodeGenerator:
         self.globalStr = []
         self.indent = 0
         self.insts = []
-        print(header, file=self.file)
+        self.write(header)
 
     def __del__(self):
-        print(tail, file=self.file)
+
+        def char(c):
+            t = hex(ord(c))[2:]
+            if len(t) == 1:
+                t = '0' + t
+            return '\\' + t.upper()
+
+        # print all global str
+        for x in zip(range(1, len(self.globalStr)+1), self.globalStr):
+            self.write('@string{} = private unnamed_addr constant [{} x i8] c"{}", align 1'
+                       .format(x[0], len(x[1]), "".join([ char(c) for c in x[1]])))
+        self.write(tail)
 
     def write(self, s):
         print(s, file=self.file)
+
+    def getGlobalStrName(self, s):
+        if s in self.globalStr:
+            return "@string{}".format(self.globalStr.index(s)+1)
+        else:
+            return None
 
     def emitGlobalStr(self, s):
         if not s in self.globalStr:
             self.globalStr.append(s)
             return "@string{}".format(len(self.globalStr))
+        else:
+            return self.getGlobalStrName(s)
 
     def enterMain(self):
         self.indent += 1
@@ -43,11 +62,6 @@ class CodeGenerator:
     def emitInst(self, s):
         self.insts.append("  " * self.indent + s)
 
-    def getGlobalStrName(self, s):
-        if s in self.globalStr:
-            return "@string{}".format(self.globalStr.index(s)+1)
-        else:
-            return None
 
     def callFunc(self, fn, param, getName):
         print("callFunc: ", fn, param)
@@ -98,6 +112,22 @@ class CodeGenerator:
         self.emitInst("store i32 {}, i32* {}, align 4".format(n6, n5))
 
         self.emitInst("; createParam")
+        return n2
+
+    def fillRecord(self, name, record, offset, getName):
+        # name is a pointer
+        n1, n2 = getName(), getName()
+        self.emitInst("{} = load i32* {}, align 4".format(n1, name))
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, record, offset))
+        self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n2))
+        self.emitInst("; fillRecord")
+
+    def createRecord(self, size, getName):
+        n1, n2 = getName(), getName()
+        self.emitInst("{} = call noalias i8* @malloc(i32 {}) nounwind".format(n1, size))
+        self.emitInst("{} = bitcast i8* {} to i32*".format(n2, n1)) # tmp
+        self.emitInst("; createRecord")
+
         return n2
 
     def pushNewScope(self, getName, size):
