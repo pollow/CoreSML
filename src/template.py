@@ -60,6 +60,7 @@ declare void @exit(i32) #3
 declare void @llvm.memset.p0i8.i32(i8* nocapture, i8, i32, i32, i1) #1
 
 @string1 = private unnamed_addr constant [13 x i8] c"Hello World\0A\00", align 1
+@string2 = private unnamed_addr constant [10 x i8] c"Goodbye!\0A\00", align 1
 
 """
 
