@@ -37,7 +37,7 @@ class ParserTest(unittest.TestCase):
         x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
         desent(0, x)
         self.assertEqual(True, True)
-'''
+
     def test_hello(self):
         x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
         # desent(0, x)
@@ -150,9 +150,22 @@ class ParserTest(unittest.TestCase):
         # self.assertEqual(True, True)
         # print("--------Code Generator Test Finished----------")
 
+        # print("--------Code Generator Test----------")
+        # x = 'val it : int = let val s : string = "Hello World\n" in ' \
+        #     'print s; let val s : string = "Goodbye!\n" in print s end; 0 end'
+        # print("Test: ", x)
+        # x = parser.parse(x)
+        # env = typecheck(x)
+        # desent(0, x)
+        # codeGen(x, env)
+        # self.assertEqual(True, True)
+        # print("--------Code Generator Test Finished----------")
+
+
         print("--------Code Generator Test----------")
-        x = 'val it : int = let val s : string = "Hello World\n" in ' \
-            'print s; let val s : string = "Goodbye!\n" in print s end; 0 end'
+        x = 'val it : int = let val {1 = x : int, 2 = y : int, ' \
+            '3 = {1 = a : int, 2 = b : int} : {1 : int, 2 : int} } : ' \
+            '{1:int, 2:int, 3: {1:int, 2:int}} = {1 = 3, 2 = 6, 3 = {1 = 10, 2 = 9} } in y end '
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)
@@ -161,16 +174,7 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
-        # print("--------Code Generator Test----------")
-        # x = 'val it : int = let val s : {1:int, 2:real} = {1 = 1, 2 = 3.0} in 0 end '
-        # print("Test: ", x)
-        # x = parser.parse(x)
-        # env = typecheck(x)
-        # desent(0, x)
-        # codeGen(x, env)
-        # self.assertEqual(True, True)
-        # print("--------Code Generator Test Finished----------")
-'''
+
 if __name__ == '__main__':
     unittest.main()
 

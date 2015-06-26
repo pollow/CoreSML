@@ -1,6 +1,7 @@
 from lexer import tokens
 import ply.yacc as yacc
 from ast import *
+import ctypes
 
 start = 'dec'
 
@@ -30,7 +31,7 @@ def p_cons_int(p):
 def p_cons_real(p):
     'cons : REAL_VAL'
     if debug: print("real : ", p[1])
-    p[0] = Value(value=p[1], tycon=real_type)
+    p[0] = Value(value=ctypes.c_float(p[1]).value, tycon=real_type)
 
 
 def p_cons_str(p):

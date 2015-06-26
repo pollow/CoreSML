@@ -60,7 +60,7 @@ class CodeGenerator:
         self.indent = 0
 
     def emitInst(self, s):
-        self.insts.append("  " * self.indent + s)
+        self.insts.append("    " * self.indent + s)
 
 
     def callFunc(self, fn, param, getName):
@@ -84,7 +84,7 @@ class CodeGenerator:
             s = s2
             levels -= 1
         n = getName()
-        self.emitInst("{2} = getelementptr inbounds i32* {1}, i32 {0}".format(offset, s, n))
+        self.emitInst("{2} = getelementptr inbounds i32* {1}, i32 {0}".format(int(offset/4), s, n))
 
         self.emitInst("; extractVar")
         return n
@@ -95,7 +95,7 @@ class CodeGenerator:
         n1, n2, n3 = getName(), getName(), getName()
         self.emitInst("{} = load i32* {}, align 4".format(n1, name))
         self.emitInst("{} = load i32** %scope, align 4".format(n2))
-        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, offset))
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, int(offset/4)))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n3))
         self.emitInst("; fillScope")
 
@@ -118,17 +118,28 @@ class CodeGenerator:
         # name is a pointer
         n1, n2 = getName(), getName()
         self.emitInst("{} = load i32* {}, align 4".format(n1, name))
-        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, record, offset))
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, record, int(offset/4)))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n2))
         self.emitInst("; fillRecord")
 
+    def extractRecord(self, record, offset, getName):
+        # return a pointer
+        n = getName()
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n, record, int(offset/4)))
+        self.emitInst("; extractRecord")
+        return n
+
     def createRecord(self, size, getName):
-        n1, n2 = getName(), getName()
+        tmp = getName()
+        self.allocate(tmp, "i32", 4)
+        n1, n2, n3 = getName(), getName(), getName()
         self.emitInst("{} = call noalias i8* @malloc(i32 {}) nounwind".format(n1, size))
         self.emitInst("{} = bitcast i8* {} to i32*".format(n2, n1)) # tmp
+        self.emitInst("{} = ptrtoint i32* {} to i32".format(n3, n2)) # tmp
+        self.emitInst("store i32 {}, i32* {}, align 4".format(n3, tmp)) # scope = tmp
         self.emitInst("; createRecord")
 
-        return n2
+        return (tmp, n2)
 
     def pushNewScope(self, getName, size):
         n1, n2, n3, n4 = getName(), getName(), getName(), getName()
@@ -154,6 +165,15 @@ class CodeGenerator:
 
         self.emitInst("; popScope")
 
+    def intToPtr(self, name, getName):
+        n = getName()
+        self.emitInst("{} = inttoptr i32 {} to i32*".format(n, name))
+        return n
+
+    def loadValue(self, name, getName):
+        n = getName()
+        self.emitInst("{} = load i32* {}, align 4".format(n, name))
+        return n
 
     def allocate(self, name, tyname, size):
         self.emitInst("{} = alloca {}, align {}".format(name, tyname, size))
