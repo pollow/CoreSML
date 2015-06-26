@@ -329,6 +329,24 @@ class Pattern :
         self.update()
         return self.type
 
+    def genCode(self, env, cg, src, getName, recordOffset = None):
+        # src is i32* pointer to real value
+        if isinstance(self.value, Value):
+            cg.fillScope(src, getOffset(env, self.value.id), getName)
+            cg.emitInst("; Pattern - Value")
+        elif isinstance(self.value, list):
+            # real value is a i32*, load as i32 and convert to i32*
+            cg.emitInst("; Pattern - Record Enter")
+            cg.indent += 1
+            src = cg.loadValue(src, getName)
+            src = cg.intToPtr(src, getName)
+            for x in self.value:
+                tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
+                x.value.genCode(env, cg, tmp, getName, recordOffset)
+
+            cg.indent -= 1
+            cg.emitInst("; Pattern - Record Exit")
+
 
 class MRule:
     def __init__(self, pat, exp):
@@ -426,8 +444,10 @@ class valbind:
     def genCode(self, env, cg, getName, entry = False):
         if entry:
             cg.enterMain()
+        else:
+            cg.emitInst("; valbind enter")
+            cg.indent += 1
         pat = self.pat
-        # only 1 assginment
         rtnName = self.exp.genCode(env, cg, getName)
 
         if entry:
@@ -435,18 +455,9 @@ class valbind:
             cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
             cg.rtnMain(n1)
         else:
-            if isinstance(pat.value, list):
-                for x in pat.value:
-                    tmp = cg.extractRecord(rtnName, self.exp.record[x.lab], getName)
-                    cg.fillScope(tmp, int(getOffset(env, x.value.value.id)/4), getName)
-                cg.emitInst("; Valbind De-record")
-            else:
-                cg.fillScope(rtnName, int(getOffset(env, self.pat.value.id)/4), getName)
-                cg.emitInst("; Valbind")
-
-        # cg.assign(name, IRTyName[self.pat.type.name], self.pat.type.size)
-        # if pat.type in primative_tycon:
-        #     cg.assign(pat.offset, n1)
+            pat.genCode(env, cg, rtnName, getName, self.exp.record)
+            cg.indent -= 1
+            cg.emitInst("; valbind exit")
 
 
 class datbind:
@@ -691,7 +702,7 @@ class Expression:
         if cls == "App":
             if isinstance(r, Value):
                 print("R: ", r)
-                n = cg.extractVar(int(getOffset(env, r.id)/4), calcLevels(env, r.id), getName)
+                n = cg.extractVar(getOffset(env, r.id), calcLevels(env, r.id), getName)
                 cg.emitInst("; Expression -- App ")
                 return n
 
@@ -752,13 +763,16 @@ class Expression:
             cg.emitInst("; Expression -- Constant ")
             return n1
         elif cls == "Record":
-            n1 = cg.createRecord(self.record["__len__"], getName)
+            cg.emitInst("; Expression -- Record Enter")
+            cg.indent += 1
+            rtn, n1 = cg.createRecord(self.record["__len__"], getName)
             for x in r:
                 rst = x.value.genCode(env, cg, getName)
                 cg.fillRecord(rst, n1, self.record[x.lab], getName)
 
-            cg.emitInst("; Expression -- Record ")
-            return n1
+            cg.indent -= 1
+            cg.emitInst("; Expression -- Record Exit")
+            return rtn
         elif cls == "Fn":
             assert len(self.reg) == 1 # datatype is not supported not
             x = r[0]

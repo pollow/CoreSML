@@ -162,8 +162,9 @@ class ParserTest(unittest.TestCase):
         # print("--------Code Generator Test Finished----------")
 
         print("--------Code Generator Test----------")
-        x = 'val it : int = let val {1 = x : int, 2 = y : real, 3 = z : real} : ' \
-            '{1:int, 2:real, 3:real} = {1 = 3, 2 = 3.0, 3 = 111.11} in x end '
+        x = 'val it : int = let val {1 = x : int, 2 = y : int, ' \
+            '3 = {1 = a : int, 2 = b : int} : {1 : int, 2 : int} } : ' \
+            '{1:int, 2:int, 3: {1:int, 2:int}} = {1 = 3, 2 = 6, 3 = {1 = 10, 2 = 9} } in y end '
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)
