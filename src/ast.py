@@ -36,7 +36,7 @@ def insertScope(env, name, value):
     env["__len__"] += TyCon.calcSize(value.type)
 
 
-def searchTyCon(tyc,name):
+def searchTyCon(tyc,name,env):
     if not isinstance(tyc.type,list):
         return False
     for ele in tyc.type: 
@@ -46,10 +46,10 @@ def searchTyCon(tyc,name):
         if isinstance(name,tuple): #datatype with param
             if ele[0].id==name[0]:
                 if len(name[1].value)==1 and isinstance(ele[1].type,str):
-                    return ele[1].type==(name[1].value)[0].value.calcType()
+                    return ele[1].type==(name[1].value)[0].value.calcType(env)
                 else:
                     for index in range(len(name[1].value)):
-                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType():
+                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType(env):
                             pass
                         else:
                             return False
@@ -61,7 +61,7 @@ def searchEnvO(env, name, typ=None):
         if env==None:
             return None
         for ele in env.keys():
-            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name):
+            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name,env):
                 return ele
         return searchEnvO(env["__parent__"], name , 1)
     if env == None:
@@ -541,7 +541,7 @@ class Expression:
         #x = r[0]
         patType=None
         expType=None
-        for x in r: 
+        for x in self.reg: 
             """ :type:(Pattern, Expression)"""
             if isinstance(x[0].value,Value):# 1.single value 2.constant 3.wildcard 4.datatype without param
                 if x[0].value.wildcard==True: # wildcard
@@ -577,7 +577,7 @@ class Expression:
                     if element.value==None and element.lab==None:
                         t['__wildCard__']=True
                     else:
-                        tmp=element.value.calcType()
+                        tmp=element.value.calcType(env)
                         t[element.lab]=tmp
                 if patType == None:
                     patType=t
@@ -667,7 +667,7 @@ class Expression:
             self.record = v
             print("Record Expression: ", self.record)
         elif cls == "Fn":
-            self.type=calcFun(env)
+            self.type=self.calcFun(env)
 
         self.update()
         return self.type
