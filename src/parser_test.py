@@ -35,13 +35,14 @@ def desent(level, x):
 class ParserTest(unittest.TestCase):
     '''
     def test_ast(self):
-        x = parser.parse('val f : int->int = fn 0 => 0 | x : int => mul {1=x,2=mul{1=x, 2=2}}')
+        # x = parser.parse('val f : int->int = fn 0 => 0 | x : int => mul {1=x,2=mul{1=x, 2=2}}')
+        # x = parser.parse('val it : int->int  = fn x : int => mul {1=x , 2 = mul{1=x, 2=2}}')
+        # x = parser.parse('val add1 : {x:int , y:int}->int = fn {x=x:int, y=y:int} => add{1=x,2=y}')
         desent(0, x)
         self.assertEqual(True, True)
 
     def test_hello(self):
-        # x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
-        x = parser.parse('val it : int->int  = fn x : int => mul {1=x , 2 = mul{1=x, 2=2}}')
+        x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
         # desent(0, x)
         typecheck(x)
         desent(0, x)
@@ -51,7 +52,7 @@ class ParserTest(unittest.TestCase):
         # x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print 1; 0 end')
         # with self.assertRaises(SMLSyntaxError):
             # typecheck(x)
-        x = parser.parse('val add1 : {x:int , y:int}->int = fn {x=x:int, y=y:int} => add{1=x,2=y}')
+        x = parser.parse('val double : int -> int = fn x : int => mul { 1 = x, 2 = 2 }')
         typecheck(x)
         desent(0, x)
         # with self.assertRaises(SMLSyntaxError):
