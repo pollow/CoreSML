@@ -6,7 +6,8 @@ class SMLSyntaxError(BaseException):
         return self.s
 
 
-IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*", "unit": "void"}
+IRTyName = {"int" : "i32", "real": "float", "char": "i8",
+            "string": "i8*", "unit": "void", "record": "i32*", "fn": "i32*"}
 
 def calcLevels(env, name):
     if env == None:
@@ -720,7 +721,6 @@ class Expression:
                     rtn = cg.callFunc(searchEnv(env, caller.reg.id), callEnv, getName)
 
                 return rtn
-                r.reverse()
         elif cls == "Let":
             print("Let: ", self)
             scope = self.letScope

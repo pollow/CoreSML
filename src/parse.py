@@ -7,6 +7,8 @@ start = 'dec'
 
 debug = 0
 
+def p_error(p):
+    pass
 
 def p_program(p):
     '''program  : program ';' exp 

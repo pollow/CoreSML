@@ -17,6 +17,104 @@ target triple = "i386-pc-linux-gnu"
 @.str10 = private unnamed_addr constant [19 x i8] c"Raise A Exception.\00", align 1
 @.str11 = private unnamed_addr constant [26 x i8] c"Should never reach here.\0A\00", align 1
 
+; declare C interface
+
+; Function Attrs: nounwind
+declare noalias i8* @malloc(i32) #0
+
+; Function Attrs: nounwind
+declare void @llvm.memset.p0i8.i32(i8* nocapture, i8, i32, i32, i1) #1
+
+declare i32 @printf(i8*, ...) #1
+
+; Function Attrs: nounwind readonly
+declare double @atof(i8*) #2
+
+; Function Attrs: nounwind readonly
+declare i32 @atoi(i8*) #2
+
+; Function Attrs: nounwind
+declare i32 @sprintf(i8*, i8*, ...) #0
+
+; Function Attrs: nounwind
+declare i32 @snprintf(i8*, i32, i8*, ...) #0
+
+; Function Attrs: nounwind readonly
+declare i32 @strlen(i8*) #2
+
+; Function Attrs: nounwind
+declare i8* @strcpy(i8*, i8*) #0
+
+; Standard Library
+
+; Function Attrs: nounwind
+define i32 @intToReal(i32* %env) #0 {
+  %1 = alloca i32*, align 4
+  store i32* %env, i32** %1, align 4
+  %2 = load i32** %1, align 4
+  %3 = getelementptr inbounds i32* %2, i32 1
+  %4 = load i32* %3, align 4
+  %5 = sitofp i32 %4 to float
+  %6 = fptosi float %5 to i32
+  ret i32 %6
+}
+
+define i8* @intToStr(i32* %env) #0 {
+  %1 = alloca i32*, align 4
+  %dummy = alloca [1 x i8], align 1
+  %n = alloca i32, align 4
+  %siz = alloca i32, align 4
+  %s = alloca i8*, align 4
+  store i32* %env, i32** %1, align 4
+  %2 = load i32** %1, align 4
+  %3 = getelementptr inbounds i32* %2, i32 1
+  %4 = load i32* %3, align 4
+  store i32 %4, i32* %n, align 4
+  %5 = getelementptr inbounds [1 x i8]* %dummy, i32 0, i32 0
+  %6 = load i32* %n, align 4
+  %7 = call i32 (i8*, i32, i8*, ...)* @snprintf(i8* %5, i32 1, i8* getelementptr inbounds ([3 x i8]* @.str1, i32 0, i32 0), i32 %6) #5
+  store i32 %7, i32* %siz, align 4
+  %8 = load i32* %siz, align 4
+  %9 = mul i32 %8, 1
+  %10 = call noalias i8* @malloc(i32 %9) #5
+  store i8* %10, i8** %s, align 4
+  %11 = load i8** %s, align 4
+  %12 = load i32* %n, align 4
+  %13 = call i32 (i8*, i8*, ...)* @sprintf(i8* %11, i8* getelementptr inbounds ([3 x i8]* @.str1, i32 0, i32 0), i32 %12) #5
+  %14 = load i8** %s, align 4
+  ret i8* %14
+}
+
+; Function Attrs: nounwind
+define i8* @realToStr(i32* %env) #0 {
+  %1 = alloca i32*, align 4
+  %dummy = alloca [1 x i8], align 1
+  %n = alloca float, align 4
+  %siz = alloca i32, align 4
+  %s = alloca i8*, align 4
+  store i32* %env, i32** %1, align 4
+  %2 = load i32** %1, align 4
+  %3 = getelementptr inbounds i32* %2, i32 1
+  %4 = bitcast i32* %3 to float*
+  %5 = load float* %4, align 4
+  store float %5, float* %n, align 4
+  %6 = getelementptr inbounds [1 x i8]* %dummy, i32 0, i32 0
+  %7 = load float* %n, align 4
+  %8 = fpext float %7 to double
+  %9 = call i32 (i8*, i32, i8*, ...)* @snprintf(i8* %6, i32 1, i8* getelementptr inbounds ([3 x i8]* @.str2, i32 0, i32 0), double %8) #5
+  store i32 %9, i32* %siz, align 4
+  %10 = load i32* %siz, align 4
+  %11 = mul i32 %10, 1
+  %12 = call noalias i8* @malloc(i32 %11) #5
+  store i8* %12, i8** %s, align 4
+  %13 = load i8** %s, align 4
+  %14 = load float* %n, align 4
+  %15 = fpext float %14 to double
+  %16 = call i32 (i8*, i8*, ...)* @sprintf(i8* %13, i8* getelementptr inbounds ([3 x i8]* @.str2, i32 0, i32 0), double %15) #5
+  %17 = load i8** %s, align 4
+  ret i8* %17
+}
+
 ; Function Attrs: nounwind
 define void @print(i32* %env) #0 {
   %1 = alloca i32*, align 4
@@ -28,14 +126,6 @@ define void @print(i32* %env) #0 {
   %6 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str, i32 0, i32 0), i8* %5)
   ret void
 }
-
-declare i32 @printf(i8*, ...) #1
-
-; Function Attrs: nounwind readonly
-declare i32 @strlen(i8*) #2
-
-; Function Attrs: nounwind
-declare i8* @strcpy(i8*, i8*) #0
 
 ; Function Attrs: nounwind
 define void @rtError(i8* %s) #0 {
@@ -49,18 +139,8 @@ define void @rtError(i8* %s) #0 {
   ret void
 }
 
-; Function Attrs: nounwind
-declare noalias i8* @malloc(i32) #0
-
-
 ; Function Attrs: noreturn nounwind
 declare void @exit(i32) #3
-
-; Function Attrs: nounwind
-declare void @llvm.memset.p0i8.i32(i8* nocapture, i8, i32, i32, i1) #1
-
-@string1 = private unnamed_addr constant [13 x i8] c"Hello World\0A\00", align 1
-@string2 = private unnamed_addr constant [10 x i8] c"Goodbye!\0A\00", align 1
 
 """
 

@@ -173,6 +173,18 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
+    def test_gen_std(self):
+        print("--------Code Generator Test----------")
+        x = 'val it : int = let val {x = x: real, y = y: int, z = z: string } = ' \
+            '{x = 3.3, y = 10, z = "abcd\n"} in print (realToStr x); print (intToStr y); print z; 0 end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
+
 if __name__ == '__main__':
     unittest.main()
 
