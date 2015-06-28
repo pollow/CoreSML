@@ -4,6 +4,8 @@ import unittest
 from parse import parser
 from ast import *
 from typecheck import *
+from codegen import *
+import sys
 
 def desent(level, x):
     if isinstance(x, tuple):
@@ -29,6 +31,10 @@ def desent(level, x):
                 #     print(x)
                 #     for y in x:
                 #         desent(level + 1, y)
+
+
+#if __name__ == "__main__":
+ #   x = parser.parse(input())
 
 
 class ParserTest(unittest.TestCase):
@@ -77,6 +83,18 @@ class ParserTest(unittest.TestCase):
         desent(0, x)
         self.assertEqual(True, True)
 
+
+    def test_recovery(self):
+
+        x = 'val ;; it  : int = let val s : string = "Hello World!\n" in print s; 0 end'  #recover in TYPE 1
+        #x= 'val it 0.0 -.-  @.@ ;val it : int = let val s : string = "Hello World!\n" in print s; 0 end' #recover in TYPE 2
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        # print("--------Code Generator Test Finished----------")
 
 if __name__ == '__main__':
     unittest.main()
