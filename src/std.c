@@ -13,74 +13,84 @@ union primative {
 
 int addi(uint32_t *env) {
     // add up two integer and return the sum.
-    int a = (int)*(int *)(env+1);
-    int b = (int)*(int *)(env+2);
-
-    return a + b;
-}
-
-float addr(uint32_t *env) {
-    // add up two integer and return the sum.
-    float a = (float)*(float *)(env+1);
-    float b = (float)*(float *)(env+2);
+    uint32_t *context = (uint32_t *)*(uint32_t **)(env+1);
+    int a = (int)*(int *)(context);
+    int b = (int)*(int *)(context+1);
 
     return a + b;
 }
 
 int subi(uint32_t *env) {
     // sub up two integer and return the sum.
-    int a = (int)*(int *)(env+1);
-    int b = (int)*(int *)(env+2);
-
-    return a - b;
-}
-
-float subr(uint32_t *env) {
-    // sub up two integer and return the sum.
-    float a = (float)*(float *)(env+1);
-    float b = (float)*(float *)(env+2);
+    uint32_t *context = (uint32_t *)*(uint32_t **)(env+1);
+    int a = (int)*(int *)(context);
+    int b = (int)*(int *)(context+1);
 
     return a - b;
 }
 
 int muli(uint32_t *env) {
     // mul up two integer and return the sum.
-    int a = (int)*(int *)(env+1);
-    int b = (int)*(int *)(env+2);
-
-    return a * b;
-}
-
-float mulr(uint32_t *env) {
-    // mul up two integer and return the sum.
-    float a = (float)*(float *)(env+1);
-    float b = (float)*(float *)(env+2);
+    uint32_t *context = (uint32_t *)*(uint32_t **)(env+1);
+    int a = (int)*(int *)(context);
+    int b = (int)*(int *)(context+1);
 
     return a * b;
 }
 
 int divi(uint32_t *env) {
     // div up two integer and return the sum.
-    int a = (int)*(int *)(env+1);
-    int b = (int)*(int *)(env+2);
+    uint32_t *context = (uint32_t *)*(uint32_t **)(env+1);
+    int a = (int)*(int *)(context);
+    int b = (int)*(int *)(context+1);
 
     return a / b;
+}
+
+int eqi(uint32_t *env) {
+    // div up two integer and return the sum.
+    uint32_t *context = (uint32_t *)*(uint32_t **)(env+1);
+    int a = (int)*(int *)(context);
+    int b = (int)*(int *)(context+1);
+
+    return a == b;
+}
+
+float addr(uint32_t *env) {
+    // add up two integer and return the sum.
+    float *context = (float *)*(float **)(env+1);
+    float a = (float)*(float *)(context);
+    float b = (float)*(float *)(context+1);
+
+    return a + b;
+}
+
+float subr(uint32_t *env) {
+    // sub up two integer and return the sum.
+    float *context = (float *)*(float **)(env+1);
+    float a = (float)*(float *)(context);
+    float b = (float)*(float *)(context+1);
+
+    return a - b;
+}
+
+float mulr(uint32_t *env) {
+    // mul up two integer and return the sum.
+    float *context = (float *)*(float **)(env+1);
+    float a = (float)*(float *)(context);
+    float b = (float)*(float *)(context+1);
+
+
+    return a * b;
 }
 
 float divr(uint32_t *env) {
     // div up two integer and return the sum.
-    float a = (float)*(float *)(env+1);
-    float b = (float)*(float *)(env+2);
+    float *context = (float *)*(float **)(env+1);
+    float a = (float)*(float *)(context);
+    float b = (float)*(float *)(context+1);
 
     return a / b;
-}
-
-float eqi(uint32_t *env) {
-    // div up two integer and return the sum.
-    float a = (float)*(float *)(env+1);
-    float b = (float)*(float *)(env+2);
-
-    return a == b;
 }
 
 void print(uint32_t *env) {
@@ -123,8 +133,9 @@ char *realToStr(uint32_t *env) {
 }
 
 char *concat(uint32_t *env) {
-    char *s1 = *(char **)(env+1);
-    char *s2 = *(char **)(env+2);
+    uint32_t *context = (uint32_t *)*(uint32_t **)(env+1);
+    char *s1 = *(char **)(context);
+    char *s2 = *(char **)(context + 1);
     int len = (strlen(s1)+strlen(s2)+1);
     char *s = (char *)malloc(len*sizeof(char));
     strcpy(s, s1);

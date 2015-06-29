@@ -6,7 +6,8 @@ class SMLSyntaxError(BaseException):
         return self.s
 
 
-IRTyName = {"int" : "i32", "real": "float", "char": "i8", "string": "i8*", "unit": "void"}
+IRTyName = {"int" : "i32", "real": "float", "char": "i8",
+            "string": "i8*", "unit": "void", "record": "i32*", "fn": "i32*"}
 
 def calcLevels(env, name):
     if env == None:
@@ -152,18 +153,7 @@ class TyCon:
 
     @staticmethod
     def calcSize(type):
-        if type is None:
-            raise SMLSyntaxError("Type not determined when calculate size.")
-        elif isinstance(type, str):
-            if type == "char":
-                return 1
-            else:
-                return 4
-        elif isinstance(type, tuple): #function call
-            return 8 # function pointer and env
-        else:
-            return 4
-
+        return 4
 
 
 int_type    = TyCon([], "int", 0, 'int', 4)
@@ -253,8 +243,8 @@ class Value :
 
     @staticmethod
     def flattenType(env, tycon):
-        # print("FlattenType: ", tycon)
-        if tycon==None:
+        print("FlattenType: ", tycon)
+        if tycon is None:
             return None
         name = tycon.calcType(env)
         if isinstance(name, tuple):
@@ -282,7 +272,9 @@ class Value :
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
-        # print("before",self)
+
+        if self.type:
+            return self.type
         self.type = Value.flattenType(env, self.tycon)
         # print("after",self)
         self.update()
@@ -422,13 +414,22 @@ class valbind:
     def __str__(self):
         return self.dict.__str__()
 
-    def recordPatBind(self, env, pat):
+    def recordPatBind(self, env, pat, ty):
         v = pat.value
         if isinstance(v, list): # record decompose
+            if not isinstance(ty, dict):
+                return False
             for x in v:
-                self.recordPatBind(env, x.value)
+                if not self.recordPatBind(env, x.value, ty[x.lab]):
+                    return False
         elif isinstance(v, Value): # normal bind
+            if v.type is None:
+                v.type = ty
+                v.update()
+            elif v.type != ty:
+                return False
             insertScope(env, v.id, v) # env[v.id] = v
+        return True
 
     @staticmethod
     def checkTypeExpPat(expType,patType):
@@ -468,20 +469,29 @@ class valbind:
         :param env: dict
         :return: bool
         """
-        # print("valbind pat:",self.pat.calcType(env))
-        print("valbind exp:",self.exp.calcType(env))
-        patType=self.pat.calcType(env)
-        expType=self.exp.calcType(env)
-        if patType == expType or isinstance(expType,tuple) and valbind.checkTypeExpPat(expType,patType) : 
-            # print("valbind checked: ", self.pat.value)
-            if isinstance(self.pat.value, list): # record
-                self.recordPatBind(env, self.pat)
-            else:
-                insertScope(env, self.pat.value.id, self.pat.value)
-                # env[self.pat.value.id] = self.pat.value
+
+        # # print("valbind pat:",self.pat.calcType(env))
+        # print("valbind exp:",self.exp.calcType(env))
+        # patType=self.pat.calcType(env)
+        # expType=self.exp.calcType(env)
+        # if patType == expType or isinstance(expType,tuple) and valbind.checkTypeExpPat(expType,patType) : 
+        #     # print("valbind checked: ", self.pat.value)
+        #     if isinstance(self.pat.value, list): # record
+        #         self.recordPatBind(env, self.pat)
+        #     else:
+        #         insertScope(env, self.pat.value.id, self.pat.value)
+        #         # env[self.pat.value.id] = self.pat.value
+
+        self.pat.calcType(env)
+        self.exp.calcType(env)
+        print("valbind checked: ", self.pat.value)
+        if self.recordPatBind(env, self.pat, self.exp.type):
+            self.pat.update()
             return True
         else:
             return False
+
+
 
     def genCode(self, env, cg, getName, entry = False):
         if entry:
@@ -764,7 +774,6 @@ class Expression:
                     rtn = cg.callFunc(searchEnv(env, caller.reg.id), callEnv, getName)
 
                 return rtn
-                r.reverse()
         elif cls == "Let":
             # print("Let: ", self)
             scope = self.letScope

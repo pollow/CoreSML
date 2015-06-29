@@ -54,6 +54,49 @@ class ParserTest(unittest.TestCase):
             typecheck(x)
         self.assertEqual(True, True)
 
+    def test_tyinfer(self):
+        x = 'val it = 0'
+        print("Test: ", x)
+        x = parser.parse(x)
+        typecheck(x)
+        desent(0, x)
+
+        x = 'val it : int = let val {x = a, y = b} = {x = 1, y = 2.0} in 0 end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        typecheck(x)
+        desent(0, x)
+
+        x = 'val it = let val x = 1 val y = x in x end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+
+        x = 'val it = let val x : {1:int, 2:real, 3:string} = {1 = 1, 2 = 2.0, 3 = "abc"} in 0 end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+
+        x = 'val it = let val x = {1 = 1, 2 = 2.0, 3 = "abc"} in 0 end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+
+        x = 'val it = let ' \
+            'val a = 10 ' \
+            'val {x = x, y = {a = b, b = c}}  = {x = a, y = {a = 2, b = 3}} ' \
+            'in c end'
+
+        print("Test: ", x)
+        x = parser.parse(x)
+        # desent(0, x)
+        typecheck(x)
+        desent(0, x)
+        self.assertEqual(True, True)
+
     def test_record_assign(self):
         x = 'val it : int = let val {x = a : int, y = b : real} = {x = 1, y = 2.0} in 0 end'
         print("Test: ", x)
@@ -174,6 +217,17 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
+    def test_gen_std(self):
+        print("--------Code Generator Test----------")
+        x = 'val it : int = let val {x = x: real, y = y: int, z = z: string } = ' \
+            '{x = 3.3, y = 10, z = "abcd\n"} in print (realToStr x); print (intToStr y); print z; 0 end'
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
 
 if __name__ == '__main__':
     unittest.main()

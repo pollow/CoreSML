@@ -65,14 +65,25 @@ class CodeGenerator:
 
     def callFunc(self, fn, param, getName):
         print("callFunc: ", fn, param)
+        self.emitInst("; callFunc - Enter")
         if fn.type[1] == 'unit':
             self.emitInst("call {} @{} (i32* {})".format(IRTyName[fn.type[1]], fn.id, param))
-            print("Call: call {} {} (i32* {})".format(IRTyName[fn.type[1]], fn.id, param))
+            self.emitInst("; callFunc - Exit")
         else:
-            rtn = getName()
+            rtn, n1 = getName(), getName()
             self.emitInst("{} = call {} @{} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
-            print("Call: {} = call {} {} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
-            return rtn
+
+            self.allocate(n1, "i32", 4)
+            if fn.type[1] in ["record", "fn", "string"]:
+                # TODO datatype
+                n2 = self.ptrToInt(rtn, IRTyName[fn.type[1]], getName)
+            else:
+                n2 = getName()
+                self.emitInst("{} = bitcast {} {} to i32".format(n2, IRTyName[fn.type[1]], rtn)) # tmp
+            self.emitInst("store i32 {}, i32* {}, align 4".format(n2, n1))
+            self.emitInst("; callFunc - Exit")
+            return n1
+
 
     def extractVar(self, offset, levels, getName):
         # return a pointer
@@ -99,7 +110,6 @@ class CodeGenerator:
         self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, int(offset/4)))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n3))
         self.emitInst("; fillScope")
-
 
     def createParam(self, getName, fnEnv, param):
         n1, n2, n3, n4, n5, n6 = getName(), getName(), getName(), getName(), getName(), getName()
@@ -169,6 +179,11 @@ class CodeGenerator:
     def intToPtr(self, name, getName):
         n = getName()
         self.emitInst("{} = inttoptr i32 {} to i32*".format(n, name))
+        return n
+
+    def ptrToInt(self, name, ty, getName):
+        n = getName()
+        self.emitInst("{} = ptrtoint {} {} to i32".format(n, ty,  name))
         return n
 
     def loadValue(self, name, getName):
@@ -245,4 +260,7 @@ def codeGen(x, env):
     x.genCode(env, cg, CodeGenerator.tempNameInc(4), True)
 
     # print(tail, file=tf)
+
+
+
 

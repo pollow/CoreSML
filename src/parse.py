@@ -2,10 +2,46 @@ from lexer import tokens
 import ply.yacc as yacc
 from ast import *
 import ctypes
+import sys
+#from parser_test import *
 
 start = 'dec'
 
 debug = 0
+
+error_handle = 1
+# 0 Do Nothing; 1 discard the token; 2 discard the whole exp; 3 re-sim  
+#error_handle =  str(sys.argv)
+
+
+def p_error(p):
+    if p:
+        print("Syntax error at '%s'" % p.value)
+    else:
+        print("Syntax error at EOF")
+    if ( error_handle == 1 ):
+        print("Trying to discard the token '%s'" % p.value)
+        yacc.errok()
+    elif ( error_handle == 2 ):
+        print("Trying to discard the whole sentence which includes '%s'" % p.value)
+        while 1:
+            tok = yacc.token()             # Get the next token
+            if not tok or tok.type == ';': break
+        yacc.restart()
+    elif ( error_handle == 3 ):
+        print("It won't be fixed in p_error")
+        pass
+    else:
+        print("Nothing would take place to fix the error")
+ 
+   
+    #while 1:
+    #tok = yacc.token()             # Get the next token
+    #if not tok or tok.type == 'RBRACE': break
+    #yacc.restart()
+    #yacc.errok() #make the mark of error disapear . Next p_error would be available
+    #yacc.token() #get the next token
+    #yacc.restart() #give up the current statk and restart the analyzer
 
 
 def p_program(p):
@@ -271,6 +307,34 @@ def p_atexp(p):
         p[0] = Expression( "Let", ( p[2], p[4] ) )
     else:
         p[0] = p[2]
+
+def p_atexp_error1(p):
+    ''' atexp   : LET decs error IN exp END
+                | LET decs error IN exps END
+    '''	
+    if (error_handle==3):
+        print("p_atexp_error1!")
+        p[0] = Expression( "Let", ( p[2], p[4] ) )
+
+def p_atexp_error2(p):
+    ''' atexp   : LET decs IN error exp END
+                | LET decs IN error exps END
+    '''
+    if (error_handle==3):	
+        print("p_atexp_error2!")
+        p[0] = Expression( "Let", ( p[2], p[5] ) )
+
+
+
+def p_atexp_error3(p):
+    ''' atexp   : LET error decs IN  exp END
+                | LET error decs IN  exps END
+		
+    '''
+    if (error_handle==3):	
+        print("p_atexp_error2!")
+        p[0] = Expression( "Let", ( p[3], p[5] ) )
+
 
 
 def p_exprow(p):
