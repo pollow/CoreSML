@@ -8,10 +8,11 @@ import sys
 start = 'dec'
 
 debug = 0
+
 error_handle = 1
-#error_handle =  str(sys.argv)
 # 0 Do Nothing; 1 discard the token; 2 discard the whole exp; 3 re-sim  
-print(error_handle)
+#error_handle =  str(sys.argv)
+
 
 def p_error(p):
     if p:
@@ -307,7 +308,6 @@ def p_atexp(p):
     else:
         p[0] = p[2]
 
-
 def p_atexp_error1(p):
     ''' atexp   : LET decs error IN exp END
                 | LET decs error IN exps END
@@ -324,15 +324,17 @@ def p_atexp_error2(p):
         print("p_atexp_error2!")
         p[0] = Expression( "Let", ( p[2], p[5] ) )
 
+
+
 def p_atexp_error3(p):
     ''' atexp   : LET error decs IN  exp END
                 | LET error decs IN  exps END
-		| error LET decs IN  exps END
-		| error LET decs IN  exps END
+		
     '''
     if (error_handle==3):	
         print("p_atexp_error2!")
         p[0] = Expression( "Let", ( p[3], p[5] ) )
+
 
 
 def p_exprow(p):

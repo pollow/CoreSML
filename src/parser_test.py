@@ -87,7 +87,9 @@ class ParserTest(unittest.TestCase):
     def test_recovery(self):
 
         x = 'val ;; it  : int = let val s : string = "Hello World!\n" in print s; 0 end'  #recover in TYPE 1
-        #x= 'val it 0.0 -.-  @.@ ;val it : int = let val s : string = "Hello World!\n" in print s; 0 end' #recover in TYPE 2
+	#x= 'val s : string = "Hello World!\n"; print s'
+	#x= 'val !@#!@#@@!!! s = 1 + 2;'    
+	#x= 'val it 0.0 -.-  @.@ ;val it : int = let val s : string = "Hello World!\n" in print s; 0 end' #recover in TYPE 2
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)
