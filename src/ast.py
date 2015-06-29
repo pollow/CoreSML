@@ -713,9 +713,13 @@ class Expression:
                 # don't care about op
                 # function should be the first argument
                 caller = r[0]
-                fnEnv = caller.genCode(env, cg, getName)
+
                 assert isinstance(caller.reg, Value)
                 assert len(r) == 2
+
+                fun = caller.genCode(env, cg, getName)
+                fp = cg.extractRecord(fp, 0, getName)
+                callEnv = cg.extractRecord(fp, 4, getName)
                 for i in range(1, len(r)):
                     p = r[i]
                     param = p.genCode(env, cg, getName)

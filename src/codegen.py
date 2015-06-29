@@ -72,6 +72,7 @@ class CodeGenerator:
             self.emitInst("; callFunc - Exit")
         else:
             rtn, n1 = getName(), getName()
+            # TODO bitcast
             self.emitInst("{} = call {} @{} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
             self.allocate(n1, "i32", 4)
             if fn.type[1] in ["record", "fn", "string"]:
