@@ -49,12 +49,19 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
 '''
     def test_call_error(self):
-        # x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print 1; 0 end')
+        x = parser.parse('val it : int = let val s : string = "Hello World!\n" in print s; 0 end')
         # with self.assertRaises(SMLSyntaxError):
             # typecheck(x)
-        x = parser.parse('val double : int -> int = fn x : int => mul { 1 = x, 2 = 2 }')
-        typecheck(x)
+        # x=parser.parse('val it : int = let val {x = a : int, y = b : real} = {x = 1, y = 2.0} in 0 end')
+        # x = parser.parse('val f : {x:real , y:string} -> int = fn {x = 7.0 , y = "hello"} => 17')
+        # x = parser.parse('val add1 : {x:int , y:int}->int = fn {x=x:int, y=y:int} => add{1=x,2=y}')
+        env=typecheck(x)
+        print('**----------------------------------------------**')
+        print(env)
+        print('**----------------------------------------------**')
+
         desent(0, x)
+        codeGen(x,env)
         # with self.assertRaises(SMLSyntaxError):
             # typecheck(x)
         self.assertEqual(True, True)

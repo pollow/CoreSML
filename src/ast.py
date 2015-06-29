@@ -30,6 +30,8 @@ def insertScope(env, name, value):
     :param value: Value
     :return:
     """
+    if name==None:
+        return 
     if name in env:
         raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
     env[name] = (value, env["__len__"])
@@ -280,9 +282,9 @@ class Value :
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
-        print("before",self)
+        # print("before",self)
         self.type = Value.flattenType(env, self.tycon)
-        print("after",self)
+        # print("after",self)
         self.update()
         return self.type
 
@@ -466,7 +468,7 @@ class valbind:
         :param env: dict
         :return: bool
         """
-        print("valbind pat:",self.pat.calcType(env))
+        # print("valbind pat:",self.pat.calcType(env))
         print("valbind exp:",self.exp.calcType(env))
         patType=self.pat.calcType(env)
         expType=self.exp.calcType(env)
@@ -816,16 +818,30 @@ class Expression:
             cg.emitInst("; Expression -- Record Exit")
             return rtn
         elif cls == "Fn":
-            assert len(self.reg) == 1 # datatype is not supported not
-            x = r[0]
-            """ :type:(Pattern, Expression)"""
-            param = x[0].calcType(env)
-            scope = appendNewScope(env)
-            # bind to new scope
-            # check expression return type
-            Expression.flattenBind(scope, x[0])
-            exp = x[1].calcType(scope)
-            self.type = (param, exp)
+            cg.emitInst("; Expression -- FN")
+            getName=cg.decFuncHead1() #print function head
+            getLabel=cg.decFuncHead2()
+            for x in r: #r : [(pattern,exp),...]
+                if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
+                    if x[0].value.wildcard==True: #wildcard
+                        n=x[1].genCode(env,cg,getName)
+                        cg.MRuleRet(n)
+                    elif x[0].value.value!=None: #constant
+                        n=x[1].genCode(env,cg,getName)
+                        comp=cg.MRuleCompare(x[0].value.value,getName)
+                        cg.MRuleBr(comp,n,getLabel)
+                    else:
+                        src=cg.getParamValue()
+                        x[0].genCode(x[1].scope,cg,src,getName)
+                        n=x[1].genCode(x[1].scope,cg,getName)
+                        cg.MRuleRet(n)
+                elif instance((x[0].value)):
+                    pass
+
+
+            getName=cg.decFuncTail() #print function tail
+            return rtn
+
 
         self.update()
 

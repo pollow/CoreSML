@@ -72,6 +72,7 @@ class CodeGenerator:
             rtn = getName()
             self.emitInst("{} = call {} @{} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
             print("Call: {} = call {} {} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
+            return rtn
 
     def extractVar(self, offset, levels, getName):
         # return a pointer
@@ -178,6 +179,41 @@ class CodeGenerator:
     def allocate(self, name, tyname, size):
         self.emitInst("{} = alloca {}, align {}".format(name, tyname, size))
 
+    def decFuncHead1(self):
+        getName=CodeGenerator.tempNameInc(0)
+        n1=getName()
+        self.emitInst("define i32 @{}(i32* %p) {{\
+        ".format())
+        return getName
+
+    def decFuncHead2(self):
+        getLabel=CodeGenerator.tempLabelInc(0)
+        return getLabel
+
+    def decFuncTail(self):
+        self.emitInst("ret i32 0")
+        self.emitInst("}")
+
+    def MRuleRet(self,n):
+        self.emitInst("ret i32* {}",format(n))
+
+
+    def MRuleCompare(self,param,getName):
+        n1,n2,n3=getName(),getName(),getName()
+        self.emitInst("{}=getelementptr inbounds i32* %p i32 {}".format(n2,1))
+        self.emitInst("{}=load i32* {}, align 4".format(n3,n2))
+        self.emitInst("{}=icmp eq i32 {} {}".format(n1,param,n3))
+        return n1
+
+
+    def MRuleBr(self,comp,n,getLabel):
+        l1,l2=getLabel(),getLabel()
+        self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,l2))
+        self.emitInst("{}:".format(l1))
+        self.emitInst("ret i32* {}".format(n))
+        self.emitInst("{}:".format(l2))
+
+
     @staticmethod
     def tempNameInc(x):
         c = [x]
@@ -189,12 +225,19 @@ class CodeGenerator:
 
         return fun
 
+    @staticmethod
+    def tempLabelInc(x):
+        c=[x]
+        def fun():
+            c[0]+=1
+            return "L{}".format(c[0])
+
 
 
 def codeGen(x, env):
     """
     :param x: Decleration
-    :return:
+    :return: 
     """
     # print(header, file=tf)
 
