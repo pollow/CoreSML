@@ -51,6 +51,7 @@ class CodeGenerator:
             return self.getGlobalStrName(s)
 
     def enterMain(self):
+        # TODO init build in function
         self.indent += 1
 
     def rtnMain(self, n1):
