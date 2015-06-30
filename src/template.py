@@ -8,7 +8,7 @@ target triple = "i386-pc-linux-gnu"
 @.str1 = private unnamed_addr constant [3 x i8] c"%d\00", align 1
 @.str2 = private unnamed_addr constant [3 x i8] c"%f\00", align 1
 @.str3 = private unnamed_addr constant [19 x i8] c"Runtime Error: %s\0A\00", align 1
-@.str4 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
+@.str4 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align  1
 @.str5 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
 @.str6 = private unnamed_addr constant [10 x i8] c"78123.326\00", align 1
 @.str7 = private unnamed_addr constant [7 x i8] c"712312\00", align 1
@@ -46,6 +46,30 @@ declare i32 @strlen(i8*) #2
 declare i8* @strcpy(i8*, i8*) #0
 
 ; Standard Library
+
+define i32 @addi(i32* %env) #0 {
+  %1 = alloca i32*, align 8
+  %context = alloca i32*, align 8
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  store i32* %env, i32** %1, align 8
+  %2 = load i32** %1, align 8
+  %3 = getelementptr inbounds i32* %2, i64 1
+  %4 = bitcast i32* %3 to i32**
+  %5 = load i32** %4, align 8
+  store i32* %5, i32** %context, align 8
+  %6 = load i32** %context, align 8
+  %7 = load i32* %6, align 4
+  store i32 %7, i32* %a, align 4
+  %8 = load i32** %context, align 8
+  %9 = getelementptr inbounds i32* %8, i64 1
+  %10 = load i32* %9, align 4
+  store i32 %10, i32* %b, align 4
+  %11 = load i32* %a, align 4
+  %12 = load i32* %b, align 4
+  %13 = add nsw i32 %11, %12
+  ret i32 %13
+}
 
 ; Function Attrs: nounwind
 define i32 @intToReal(i32* %env) #0 {

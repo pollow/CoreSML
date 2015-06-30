@@ -8,8 +8,8 @@ init = {
     'print' : (Value(tycon=TyCon(name="fn", type=(string_type, unit_type)), id='print'), 4),
     'mul'   : (Value(tycon=TyCon(name="fn", type=(
         TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 8),
-    'add'   : (Value(tycon=TyCon(name="fn", type=(
-        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='mul'), 12),
+    'addi'   : (Value(tycon=TyCon(name="fn", type=(
+        TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='addi'), 12),
     'intToStr': (Value(tycon=TyCon(name="fn", type=(int_type, string_type)), id='intToStr'), 16),
     'realToStr': (Value(tycon=TyCon(name="fn", type=(real_type, string_type)), id='realToStr'), 20),
 }

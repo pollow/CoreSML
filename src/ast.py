@@ -330,18 +330,27 @@ class Pattern :
     def genCode(self, env, cg, src, getName, recordOffset = None,func=None):
         # src is i32* pointer to real value
         if isinstance(self.value, Value):
-            cg.fillScope(src, getOffset(env, self.value.id), getName,func)
-            cg.emitInst("; Pattern - Value")
+            if self.value.id!=None:
+                cg.fillScope(src, getOffset(env, self.value.id), getName,func)
+                cg.emitInst("; Pattern - Value")
         elif isinstance(self.value, list):
             # real value is a i32*, load as i32 and convert to i32*
             cg.emitInst("; Pattern - Record Enter")
             cg.indent += 1
-            src = cg.loadValue(src, getName)
+            if func==None:
+                src = cg.loadValue(src, getName)
             src = cg.intToPtr(src, getName)
-            for x in self.value:
-                tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
-                x.value.genCode(env, cg, tmp, getName, recordOffset)
-
+            for i in range(len(self.value)):
+                x=(self.value)[i]
+                if x.value!=None and x.lab!=None:
+                    if recordOffset!=None:
+                        tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
+                        x.value.genCode(env, cg, tmp, getName, recordOffset)
+                    else:
+                        tmp = cg.extractRecord(src, i*4, getName)
+                        tmp = cg.loadValue(tmp,getName)
+                        x.value.genCode(env, cg, tmp, getName,None,1)
+    
             cg.indent -= 1
             cg.emitInst("; Pattern - Record Exit")
 
@@ -484,6 +493,7 @@ class valbind:
 
         self.pat.calcType(env)
         self.exp.calcType(env)
+
         print("valbind checked: ", self.pat.value)
         if self.recordPatBind(env, self.pat, self.exp.type):
             self.pat.update()
@@ -571,7 +581,8 @@ class Expression:
             # env[pat.value.id] = pat.value
         elif isinstance(pat.value, list):
             for x in pat.value:
-                Expression.flattenBind(env, x.value)
+                if x.value!=None:
+                    Expression.flattenBind(env, x.value)
         elif isinstance(pat.value,tuple):
             for x in (pat.value)[1].value:
                 Expression.flattenBind(env, x.value)
@@ -613,7 +624,9 @@ class Expression:
             if isinstance(x[0].value,Value):# 1.single value 2.constant 3.wildcard 4.datatype without param
                 # print("calcFun::value") ######
                 if x[0].value.wildcard==True: # wildcard
-                    pass #do nothing
+                    if patType!=None:
+                        x[0].type=patType
+                        x[0].update()
                 else :
                     param = x[0].calcType(env)
                     if isinstance(param,str): # constant ; single value with ty mentioned
@@ -644,7 +657,7 @@ class Expression:
                 # print("calcFun::list") #####
                 t={"__wildCard__":False}
                 for element in x[0].value:
-                    if element.value==None and element.lab==None:
+                    if element.value==None and element.lab==None: #...
                         t['__wildCard__']=True
                     else:
                         tmp=element.value.calcType(env)
@@ -685,7 +698,9 @@ class Expression:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
                 expType=exp
-
+        if '__wildCard__' in patType:
+            del(patType['__wildCard__'])
+        # print("fn type: ",(patType,expType))
         return (patType,expType)
 
     def calcType(self, env):
@@ -793,7 +808,6 @@ class Expression:
                 rtnName = exp.genCode(scope, cg, getName)
 
             cg.popScope(getName)
-
             cg.emitInst("; Expression -- Let ")
 
             return rtnName
@@ -836,25 +850,41 @@ class Expression:
             print("####################################")
             getName=cg.decFuncHead1() #print function head
             getLabel=cg.decFuncHead2()
-            for x in r: #r : [(pattern,exp),...]
-                if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
-                    if x[0].value.wildcard==True: #wildcard
-                        n=x[1].genCode(env,cg,getName)
-                        cg.MRuleRet(n)
-                    elif x[0].value.value!=None: #constant
-                        n=x[1].genCode(env,cg,getName)
-                        comp=cg.MRuleCompare(x[0].value.value,getName)
-                        cg.MRuleBr(comp,n,getName,getLabel)
-                    else:
-                        src=cg.getParamValue()
-                        x[0].genCode(x[1].scope,cg,src,getName)
-                        n=x[1].genCode(x[1].scope,cg,getName)
-                        cg.MRuleRet(n)
-                elif instance((x[0].value)):
-                    pass
-            getName=cg.decFuncTail() #print function tail
-            
 
+            self.genCodeFuncBody(cg,env,getName,getLabel,self.type)
+
+            getName=cg.decFuncTail() #print function tail
 
         self.update()
+
+
+    def genCodeFuncBody(self,cg,env,getName,getLabel,typ):
+        for i in range(len(self.reg)): #self.reg : [(pattern,exp),...]
+            x=(self.reg)[i]
+            if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
+                if x[0].value.wildcard==True: #wildcard
+                    n=x[1].genCode(env,cg,getName)
+                    cg.MRuleRet(n,getName)
+                    if i != len(self.reg):
+                        l1=getLabel()
+                        cg.emitInst("{}:".format(l1))
+                elif x[0].value.value!=None: #constant
+                    n=x[1].genCode(env,cg,getName)
+                    param=cg.getParamValue(getName)
+                    comp=cg.MRuleCompare(x[0].value.value,param,getName,getLabel)
+                    cg.MRuleBr(comp,n,getName,getLabel)
+                else: #x
+                    param=cg.getParamValue(getName)
+                    x[0].genCode(x[1].scope,cg,param,getName)
+                    n=x[1].genCode(x[1].scope,cg,getName)
+                    cg.MRuleRet(n,getName)
+            elif isinstance((x[0].value),list):# compound type
+                param=cg.getParamValue(getName)# getparam
+                x[0].genCode(x[1].scope,cg,param,getName,None,1)# fill scope
+                n=x[1].genCode(x[1].scope,cg,getName)# calc exp
+                FLabel=getLabel()
+                cg.MRuleCompare(x[0].value,param,getName,getLabel,FLabel,typ[0]) # compare pattern
+                cg.MRuleRet(n,getName)
+                cg.emitInst("{}:".format(FLabel))
+
 

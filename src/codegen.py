@@ -109,7 +109,7 @@ class CodeGenerator:
         self.emitInst("{} = load i32** %scope, align 4".format(n1))
         self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, n1, int(offset/4)))
         if func == None:
-            self.emitInst("{} = load i32* {}, align 4".format(n3, name))
+            self.emitInst("{} = add i32 {}, 0".format(n3, name))
         else:
             self.emitInst("{} = ptrtoint i32* {} to i32".format(n3, n1))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n3, n2))
@@ -204,9 +204,9 @@ class CodeGenerator:
         self.insts = []
         self.indent = 0
         getName=CodeGenerator.tempNameInc(0)
-        n1=getName()
-        self.emitInst("define i32 @f(i32* %scope) {")
-        self.emitInst("{}=load i32* %scope,align 4".format(n1))
+        self.emitInst("define i32 @f(i32* %p) {")
+        self.emitInst("%scope = alloca i32*, align 4")
+        self.emitInst("store i32* %p, i32** %scope, align 4")
         self.indent += 1
         return getName
 
@@ -222,18 +222,49 @@ class CodeGenerator:
         self.write("\n".join(self.insts)+"\n")
         self.insts, self.indent = self.insts_stack.pop()
 
-    def MRuleRet(self,n):
+    def MRuleRet(self,n,getName):
         n1=getName()
         self.emitInst("{}=load i32* {} ,align 4".format(n1,n))
-        self.emitInst("ret i32 {}",format(n1))
+        self.emitInst("ret i32 {}".format(n1))
 
-
-    def MRuleCompare(self,param,getName):
+    def getParamValue(self,getName):
         n1,n2,n3=getName(),getName(),getName()
-        self.emitInst("{}=getelementptr inbounds i32* %scope, i32 {}".format(n1,1))
-        self.emitInst("{}=load i32* {}, align 4".format(n2,n1))
-        self.emitInst("{}=icmp eq i32 {}, {}".format(n3,param,n2))
+        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
+        self.emitInst("{}=load i32** {}, align 4".format(n2,n1))
+        self.emitInst("{}=ptrtoint i32* {} to i32".format(n3,n2))
         return n3
+
+
+    def MRuleCompare(self,pat,param,getName,getLabel,FLabel=None,compound=None):
+        if compound==None:
+            n1=getName()
+            self.emitInst("{}=icmp eq i32 {}, {}".format(n1,pat,param))
+            return n1
+        else: # compound is a dict
+            r=0
+            dic={}
+            for i in range(len(pat)):
+                if pat[i].lab!=None and pat[i].value!=None: #wildcard
+                    dic[pat[i].lab]=i
+            for element in compound:
+                if element in dic:
+                    n1,n2,n3=getName(),getName(),getName()
+                    self.emitInst("{} = inttoptr i32 {} to i32*".format(n1,param))
+                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element))
+                    self.emitInst("{} = load i32* {}, align 4".format(n3,n2))
+                    x=pat[dic[element]].value.value
+                    if isinstance(x,Value):#simple type:const,x,wildcard
+                        if x.wildcard==True: #wildcard
+                            pass
+                        elif x.value!=None: #const
+                            comp=self.MRuleCompare(x.value,n3,getName,getLabel)
+                            l1=getLabel()
+                            self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,FLabel))
+                            self.emitInst("{}:".format(l1))
+                        else: #x
+                            pass
+                    else: #compound type
+                        self.MRuleCompare(x,n3,getName,FLabel,compound[element])
 
 
     def MRuleBr(self,comp,n,getName,getLabel):
