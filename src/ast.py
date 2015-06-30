@@ -305,10 +305,14 @@ class Pattern :
         elif isinstance(self.value, list):
             # record decompose binding
             t = {}
-            v = {}
+            v = {"__len__": 0}
             for x in self.value:
                 t[x.lab] = x.calcType(env)
-                v[x.lab] = x.value # a issue here, nested pattern binding
+
+            for x in sorted(t.keys()):
+                v[x] = v["__len__"]
+                v["__len__"] += 4
+                # v[x] = x.value # a issue here, nested pattern binding
 
             self.type = t
             self.record = v
@@ -671,7 +675,9 @@ class Expression:
                 assert isinstance(x, RecordItem)
                 x.calcType(env)
                 t[x.lab] = x.type
-                v[x.lab] = v["__len__"]
+
+            for x in sorted(t.keys()):
+                v[x] = v["__len__"]
                 v["__len__"] += 4
 
             self.type = t
