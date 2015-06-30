@@ -10,6 +10,9 @@ primitive = ['+', '-', '*', '/', 'div', '#']
 
 tf = "test.ll"
 
+def funType(tycon):
+    assert isinstance(tycon, tuple)
+    return "{} (i32*)*".format(IRTyName[tycon[1].name])
 
 class CodeGenerator:
     'IR Language Generator'
@@ -50,8 +53,21 @@ class CodeGenerator:
         else:
             return self.getGlobalStrName(s)
 
-    def enterMain(self):
-        self.indent += 1
+    def enterMain(self, env, getName):
+        # TODO init build in function
+        zero = getName()
+        self.indent += 2
+        self.emitInst("{} = add i32 0, 0". format(zero))
+        for x in env:
+            if not x[:2] == "__" and isinstance(env[x][0].tycon.type, tuple):
+                r = self.createRecord(8, getName)
+                self.fillRecord(zero, r[1], 0, getName, ptr=False)
+                n1 = getName()
+                self.emitInst("{} = ptrtoint {} {} to i32".format(n1, funType(env[x][0].tycon.type), "@"+x))
+                self.fillRecord(n1, r[1], 4, getName, ptr=False)
+                self.fillScope(r[0], env[x][1], getName)
+
+        self.indent -= 1
 
     def rtnMain(self, n1):
         self.emitInst("ret i32 {}".format(n1))
@@ -71,6 +87,7 @@ class CodeGenerator:
             self.emitInst("; callFunc - Exit")
         else:
             rtn, n1 = getName(), getName()
+            # TODO bitcast
             self.emitInst("{} = call {} @{} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
             self.allocate(n1, "i32", 4)
             if fn.type[1] in ["record", "fn", "string"]:
@@ -123,10 +140,15 @@ class CodeGenerator:
         self.emitInst("; createParam")
         return n2
 
-    def fillRecord(self, name, record, offset, getName):
+    def fillRecord(self, name, record, offset, getName, ptr = True):
         # name is a pointer
-        n1, n2 = getName(), getName()
-        self.emitInst("{} = load i32* {}, align 4".format(n1, name))
+        if ptr:
+            n1 = getName()
+            self.emitInst("{} = load i32* {}, align 4".format(n1, name))
+        else:
+            n1 = name
+
+        n2 = getName()
         self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, record, int(offset/4)))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n2))
         self.emitInst("; fillRecord")

@@ -47,6 +47,80 @@ declare i8* @strcpy(i8*, i8*) #0
 
 ; Standard Library
 
+define i32 @addi(i32* %env) #0 {
+  %1 = alloca i32*, align 4
+  %context = alloca i32*, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  store i32* %env, i32** %1, align 4
+  %2 = load i32** %1, align 4
+  %3 = getelementptr inbounds i32* %2, i32 1
+  %4 = bitcast i32* %3 to i32**
+  %5 = load i32** %4, align 4
+  store i32* %5, i32** %context, align 4
+  %6 = load i32** %context, align 4
+  %7 = load i32* %6, align 4
+  store i32 %7, i32* %a, align 4
+  %8 = load i32** %context, align 4
+  %9 = getelementptr inbounds i32* %8, i32 1
+  %10 = load i32* %9, align 4
+  store i32 %10, i32* %b, align 4
+  %11 = load i32* %a, align 4
+  %12 = load i32* %b, align 4
+  %13 = add nsw i32 %11, %12
+  ret i32 %13
+}
+
+; Function Attrs: nounwind
+define i32 @subi(i32* %env) #0 {
+  %1 = alloca i32*, align 4
+  %context = alloca i32*, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  store i32* %env, i32** %1, align 4
+  %2 = load i32** %1, align 4
+  %3 = getelementptr inbounds i32* %2, i32 1
+  %4 = bitcast i32* %3 to i32**
+  %5 = load i32** %4, align 4
+  store i32* %5, i32** %context, align 4
+  %6 = load i32** %context, align 4
+  %7 = load i32* %6, align 4
+  store i32 %7, i32* %a, align 4
+  %8 = load i32** %context, align 4
+  %9 = getelementptr inbounds i32* %8, i32 1
+  %10 = load i32* %9, align 4
+  store i32 %10, i32* %b, align 4
+  %11 = load i32* %a, align 4
+  %12 = load i32* %b, align 4
+  %13 = sub nsw i32 %11, %12
+  ret i32 %13
+}
+
+; Function Attrs: nounwind
+define i32 @muli(i32* %env) #0 {
+  %1 = alloca i32*, align 4
+  %context = alloca i32*, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  store i32* %env, i32** %1, align 4
+  %2 = load i32** %1, align 4
+  %3 = getelementptr inbounds i32* %2, i32 1
+  %4 = bitcast i32* %3 to i32**
+  %5 = load i32** %4, align 4
+  store i32* %5, i32** %context, align 4
+  %6 = load i32** %context, align 4
+  %7 = load i32* %6, align 4
+  store i32 %7, i32* %a, align 4
+  %8 = load i32** %context, align 4
+  %9 = getelementptr inbounds i32* %8, i32 1
+  %10 = load i32* %9, align 4
+  store i32 %10, i32* %b, align 4
+  %11 = load i32* %a, align 4
+  %12 = load i32* %b, align 4
+  %13 = mul nsw i32 %11, %12
+  ret i32 %13
+}
+
 ; Function Attrs: nounwind
 define i32 @intToReal(i32* %env) #0 {
   %1 = alloca i32*, align 4
