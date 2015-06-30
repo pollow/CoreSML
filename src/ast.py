@@ -309,10 +309,14 @@ class Pattern :
         elif isinstance(self.value, list):
             # record decompose binding
             t = {}
-            v = {}
+            v = {"__len__": 0}
             for x in self.value:
                 t[x.lab] = x.calcType(env)
-                v[x.lab] = x.value # a issue here, nested pattern binding
+
+            for x in sorted(t.keys()):
+                v[x] = v["__len__"]
+                v["__len__"] += 4
+                # v[x] = x.value # a issue here, nested pattern binding
 
             self.type = t
             self.record = v
@@ -505,7 +509,7 @@ class valbind:
 
     def genCode(self, env, cg, getName, entry = False):
         if entry:
-            cg.enterMain()
+            cg.enterMain(env, getName)
         else:
             cg.emitInst("; valbind enter")
             cg.indent += 1
@@ -748,7 +752,9 @@ class Expression:
                 assert isinstance(x, RecordItem)
                 x.calcType(env)
                 t[x.lab] = x.type
-                v[x.lab] = v["__len__"]
+
+            for x in sorted(t.keys()):
+                v[x] = v["__len__"]
                 v["__len__"] += 4
 
             self.type = t
@@ -782,14 +788,18 @@ class Expression:
                 # don't care about op
                 # function should be the first argument
                 caller = r[0]
-                fnEnv = caller.genCode(env, cg, getName)
+
                 assert isinstance(caller.reg, Value)
                 assert len(r) == 2
+
+                fun     = caller.genCode(env, cg, getName)
+                callEnv = cg.extractRecord(fun, 0, getName)
+                fp      = cg.extractRecord(fun, 4, getName)
                 for i in range(1, len(r)):
                     p = r[i]
                     param = p.genCode(env, cg, getName)
-                    callEnv = cg.createParam(getName, fnEnv, param)
-                    rtn = cg.callFunc(searchEnv(env, caller.reg.id), callEnv, getName)
+                    arg = cg.createParam(getName, callEnv, param)
+                    rtn = cg.callFunc(searchEnv(env, caller.reg.id), arg, getName)
 
                 return rtn
         elif cls == "Let":
