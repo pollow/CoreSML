@@ -869,10 +869,13 @@ class Expression:
                         l1=getLabel()
                         cg.emitInst("{}:".format(l1))
                 elif x[0].value.value!=None: #constant
-                    n=x[1].genCode(env,cg,getName)
                     param=cg.getParamValue(getName)
                     comp=cg.MRuleCompare(x[0].value.value,param,getName,getLabel)
-                    cg.MRuleBr(comp,n,getName,getLabel)
+                    l1,l2=getLabel(),getLabel()
+                    cg.MRuleBr1(comp,l1,l2)
+                    n=x[1].genCode(env,cg,getName)
+                    cg.MRuleRet(n,getName)
+                    cg.MRuleBr2(l2)
                 else: #x
                     param=cg.getParamValue(getName)
                     x[0].genCode(x[1].scope,cg,param,getName)
@@ -880,6 +883,7 @@ class Expression:
                     cg.MRuleRet(n,getName)
             elif isinstance((x[0].value),list):# compound type
                 param=cg.getParamValue(getName)# getparam
+
                 x[0].genCode(x[1].scope,cg,param,getName,None,1)# fill scope
                 n=x[1].genCode(x[1].scope,cg,getName)# calc exp
                 FLabel=getLabel()

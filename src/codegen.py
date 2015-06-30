@@ -267,15 +267,12 @@ class CodeGenerator:
                         self.MRuleCompare(x,n3,getName,FLabel,compound[element])
 
 
-    def MRuleBr(self,comp,n,getName,getLabel):
-        l1,l2=getLabel(),getLabel()
-        n1=getName()
+    def MRuleBr1(self,comp,l1,l2):
         self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,l2))
         self.emitInst("{}:".format(l1))
-        self.emitInst("{}=load i32* {},align 4".format(n1,n))
-        self.emitInst("ret i32 {}".format(n1))
-        self.emitInst("{}:".format(l2))
 
+    def MRuleBr2(self,l2):
+        self.emitInst("{}:".format(l2))
 
     @staticmethod
     def tempNameInc(x):
