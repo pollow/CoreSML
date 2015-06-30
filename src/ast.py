@@ -243,7 +243,7 @@ class Value :
 
     @staticmethod
     def flattenType(env, tycon):
-        print("FlattenType: ", tycon)
+        # print("FlattenType: ", tycon)
         if tycon is None:
             return None
         name = tycon.calcType(env)
@@ -327,10 +327,10 @@ class Pattern :
         self.update()
         return self.type
 
-    def genCode(self, env, cg, src, getName, recordOffset = None):
+    def genCode(self, env, cg, src, getName, recordOffset = None,func=None):
         # src is i32* pointer to real value
         if isinstance(self.value, Value):
-            cg.fillScope(src, getOffset(env, self.value.id), getName)
+            cg.fillScope(src, getOffset(env, self.value.id), getName,func)
             cg.emitInst("; Pattern - Value")
         elif isinstance(self.value, list):
             # real value is a i32*, load as i32 and convert to i32*
@@ -507,7 +507,10 @@ class valbind:
             cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
             cg.rtnMain(n1)
         else:
-            pat.genCode(env, cg, rtnName, getName, self.exp.record)
+            if self.exp.cls=="Fn":
+                pat.genCode(env, cg, rtnName, getName, self.exp.record,1)
+            else:
+                pat.genCode(env, cg, rtnName, getName, self.exp.record)
             cg.indent -= 1
             cg.emitInst("; valbind exit")
 
@@ -828,6 +831,9 @@ class Expression:
             return rtn
         elif cls == "Fn":
             cg.emitInst("; Expression -- FN")
+            print("####################################")
+            print(env)
+            print("####################################")
             getName=cg.decFuncHead1() #print function head
             getLabel=cg.decFuncHead2()
             for x in r: #r : [(pattern,exp),...]
@@ -838,7 +844,7 @@ class Expression:
                     elif x[0].value.value!=None: #constant
                         n=x[1].genCode(env,cg,getName)
                         comp=cg.MRuleCompare(x[0].value.value,getName)
-                        cg.MRuleBr(comp,n,getLabel)
+                        cg.MRuleBr(comp,n,getName,getLabel)
                     else:
                         src=cg.getParamValue()
                         x[0].genCode(x[1].scope,cg,src,getName)
@@ -846,10 +852,8 @@ class Expression:
                         cg.MRuleRet(n)
                 elif instance((x[0].value)):
                     pass
-
-
             getName=cg.decFuncTail() #print function tail
-            return rtn
+            
 
 
         self.update()

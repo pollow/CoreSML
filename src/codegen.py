@@ -18,6 +18,7 @@ class CodeGenerator:
         self.globalStr = []
         self.indent = 0
         self.insts = []
+        self.insts_stack = []
         self.write(header)
 
     def __del__(self):
@@ -102,14 +103,18 @@ class CodeGenerator:
         return n
         # TODO did not save to stack. Dangling pointer if freed.
 
-    def fillScope(self, name, offset, getName):
+    def fillScope(self, name, offset, getName,func=None):
         # name is a pointer
         n1, n2, n3 = getName(), getName(), getName()
-        self.emitInst("{} = load i32* {}, align 4".format(n1, name))
-        self.emitInst("{} = load i32** %scope, align 4".format(n2))
-        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, int(offset/4)))
-        self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n3))
+        self.emitInst("{} = load i32** %scope, align 4".format(n1))
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, n1, int(offset/4)))
+        if func == None:
+            self.emitInst("{} = load i32* {}, align 4".format(n3, name))
+        else:
+            self.emitInst("{} = ptrtoint i32* {} to i32".format(n3, n1))
+        self.emitInst("store i32 {}, i32* {}, align 4".format(n3, n2))
         self.emitInst("; fillScope")
+
 
     def createParam(self, getName, fnEnv, param):
         n1, n2, n3, n4, n5, n6 = getName(), getName(), getName(), getName(), getName(), getName()
@@ -195,10 +200,14 @@ class CodeGenerator:
         self.emitInst("{} = alloca {}, align {}".format(name, tyname, size))
 
     def decFuncHead1(self):
+        self.insts_stack.append((self.insts, self.indent))
+        self.insts = []
+        self.indent = 0
         getName=CodeGenerator.tempNameInc(0)
         n1=getName()
-        self.emitInst("define i32 @{}(i32* %p) {{\
-        ".format())
+        self.emitInst("define i32 @f(i32* %scope) {")
+        self.emitInst("{}=load i32* %scope,align 4".format(n1))
+        self.indent += 1
         return getName
 
     def decFuncHead2(self):
@@ -206,26 +215,34 @@ class CodeGenerator:
         return getLabel
 
     def decFuncTail(self):
+        # self.emitInst("call void %rtError(i8* getelementptr inbounds ([19 x i8]* @.str10, i32 0, i32 0))")
         self.emitInst("ret i32 0")
+        self.indent -= 1
         self.emitInst("}")
+        self.write("\n".join(self.insts)+"\n")
+        self.insts, self.indent = self.insts_stack.pop()
 
     def MRuleRet(self,n):
-        self.emitInst("ret i32* {}",format(n))
+        n1=getName()
+        self.emitInst("{}=load i32* {} ,align 4".format(n1,n))
+        self.emitInst("ret i32 {}",format(n1))
 
 
     def MRuleCompare(self,param,getName):
         n1,n2,n3=getName(),getName(),getName()
-        self.emitInst("{}=getelementptr inbounds i32* %p i32 {}".format(n2,1))
-        self.emitInst("{}=load i32* {}, align 4".format(n3,n2))
-        self.emitInst("{}=icmp eq i32 {} {}".format(n1,param,n3))
-        return n1
+        self.emitInst("{}=getelementptr inbounds i32* %scope, i32 {}".format(n1,1))
+        self.emitInst("{}=load i32* {}, align 4".format(n2,n1))
+        self.emitInst("{}=icmp eq i32 {}, {}".format(n3,param,n2))
+        return n3
 
 
-    def MRuleBr(self,comp,n,getLabel):
+    def MRuleBr(self,comp,n,getName,getLabel):
         l1,l2=getLabel(),getLabel()
+        n1=getName()
         self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,l2))
         self.emitInst("{}:".format(l1))
-        self.emitInst("ret i32* {}".format(n))
+        self.emitInst("{}=load i32* {},align 4".format(n1,n))
+        self.emitInst("ret i32 {}".format(n1))
         self.emitInst("{}:".format(l2))
 
 
@@ -246,6 +263,7 @@ class CodeGenerator:
         def fun():
             c[0]+=1
             return "L{}".format(c[0])
+        return fun
 
 
 
