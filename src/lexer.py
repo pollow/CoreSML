@@ -132,36 +132,7 @@ lexer = lex.lex()
 
 if __name__ == "__main__":
     # Test data
-    data = r'''
-        1 + 2;
-        val a__' = "foo";
-        val b = (*here is a
-         * )comm
-         ent ) !*) 1.0;
-        val c = 1.0E5;
-        val d = 2e3;
-        c / d;
-        c div d;
-        let
-            val a : int = 10;
-        in
-            a * 19.0 div 2 / 3;
-        end
-
-        val str = "abc\u0000";
-
-        val ## = 1 #! !# |#|;
-        val x = fn x => x * 2;
-        val y = case ## of
-          1=> 2
-        | 2 -> 3
-        | 3 -> (1,2,3)
-        end;
-
-        val q = !x;
-        _ ! $ @ @@ ... => -> .
-    '''
-
+    data = ' val it : int = let val s s: string = "Hello World\n" in print s; 0 end $'
     # Give the lexer input
     lexer.input(data)
 
