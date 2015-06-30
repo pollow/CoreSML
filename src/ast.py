@@ -446,7 +446,7 @@ class valbind:
 
     def genCode(self, env, cg, getName, entry = False):
         if entry:
-            cg.enterMain()
+            cg.enterMain(env, getName)
         else:
             cg.emitInst("; valbind enter")
             cg.indent += 1
@@ -717,14 +717,14 @@ class Expression:
                 assert isinstance(caller.reg, Value)
                 assert len(r) == 2
 
-                fun = caller.genCode(env, cg, getName)
-                fp = cg.extractRecord(fp, 0, getName)
-                callEnv = cg.extractRecord(fp, 4, getName)
+                fun     = caller.genCode(env, cg, getName)
+                callEnv = cg.extractRecord(fun, 0, getName)
+                fp      = cg.extractRecord(fun, 4, getName)
                 for i in range(1, len(r)):
                     p = r[i]
                     param = p.genCode(env, cg, getName)
-                    callEnv = cg.createParam(getName, fnEnv, param)
-                    rtn = cg.callFunc(searchEnv(env, caller.reg.id), callEnv, getName)
+                    arg = cg.createParam(getName, callEnv, param)
+                    rtn = cg.callFunc(searchEnv(env, caller.reg.id), arg, getName)
 
                 return rtn
         elif cls == "Let":
