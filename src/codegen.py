@@ -126,7 +126,7 @@ class CodeGenerator:
         self.emitInst("{} = load i32** %scope, align 4".format(n1))
         self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, n1, int(offset/4)))
         if func == None:
-            self.emitInst("{} = add i32 {}, 0".format(n3, name))
+            self.emitInst("{} = load i32* {}, align 4".format(n3, name))
         else:
             self.emitInst("{} = ptrtoint i32* {} to i32".format(n3, n1))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n3, n2))
