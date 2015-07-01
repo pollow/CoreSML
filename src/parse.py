@@ -2,23 +2,23 @@ from lexer import tokens
 import ply.yacc as yacc
 from ast import *
 import ctypes
-from pycolorterm.pycolorterm import print_pretty
+import colors
 
 start = 'dec'
 
 debug = 0
 
 error_handle = 1
-errflag = False
+errflag = [False]
 # 0 Do Nothing; 1 discard the token; 2 discard the whole exp; 3 re-sim  
 #error_handle =  str(sys.argv)
 
 
 def p_error(p):
     if p:
-        print("Syntax error at '%s'" % p.value)
+        print(colors.error("Syntax error at '%s'" % p.value))
     else:
-        print("Syntax error at EOF")
+        print(colors.error("Syntax error at EOF"))
     if ( error_handle == 1 ):
         print("Trying to discard the token '%s'" % p.value)
         yacc.errok()
@@ -29,11 +29,11 @@ def p_error(p):
             if not tok or tok.type == ';': break
         yacc.restart()
     elif ( error_handle == 3 ):
-        print("It won't be fixed in p_error")
+        print(colors.error("It won't be fixed in p_error"))
         pass
     else:
-        print("Nothing would take place to fix the error")
-    errflag = True
+        print(colors.error("Nothing would take place to fix the error"))
+    errflag[0] = True
 
 def p_program(p):
     '''program  : program ';' exp 
@@ -565,7 +565,6 @@ def p_symbol(p):
     if debug: print(' symbol ')
 
 
-# parser = yacc.yacc(debug=True) if debug else yacc.yacc(debug=False)
-parser = yacc.yacc(debug=False, errorlog=log)
+parser = yacc.yacc(debug=True) if debug else yacc.yacc(debug=False, errorlog=yacc.NullLogger())
 
 

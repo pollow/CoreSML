@@ -3,7 +3,7 @@ __author__ = 'Xing, Chang'
 
 import sys
 from parse import parser
-from ast import *
+from parse import errflag
 from typecheck import *
 from codegen import *
 
@@ -13,5 +13,6 @@ if __name__ == "__main__":
     x = parser.parse(src)
     env = typecheck(x)
     desent(0, x)
-    codeGen(x, env, sys.argv[1].split(".")[0] + ".ll")
+    if not errflag[0]:
+        codeGen(x, env, sys.argv[1].split(".")[0] + ".ll")
 

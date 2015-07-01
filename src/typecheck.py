@@ -1,5 +1,6 @@
 from ast import *
 import pprint
+import colors
 
 init = {
     '__parent__' : None,
@@ -25,8 +26,7 @@ def typecheck(p):
             del init["it"]
         p.checkType(init)
 
-    print("Type Check finished! ")
-    print("The Symbol Table is:")
+    print(colors.success("Type Check finished! The Symbol Table is:"))
     pprint.pprint(init)
 
     return init
