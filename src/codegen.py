@@ -8,8 +8,6 @@ interface = ['printf']
 
 primitive = ['+', '-', '*', '/', 'div', '#']
 
-tf = "test.ll"
-
 def funType(tycon):
     assert isinstance(tycon, tuple)
     return "{} (i32*)*".format(IRTyName[tycon[1].name])
@@ -80,7 +78,7 @@ class CodeGenerator:
 
 
     def callFunc(self, fn, param, getName):
-        print("callFunc: ", fn, param)
+        # print("callFunc: ", fn, param)
         self.emitInst("; callFunc - Enter")
         if fn.type[1] == 'unit':
             self.emitInst("call {} @{} (i32* {})".format(IRTyName[fn.type[1]], fn.id, param))
@@ -227,18 +225,13 @@ class CodeGenerator:
 
 
 
-def codeGen(x, env):
+def codeGen(x, env, tf = "test.ll"):
+
     """
     :param x: Decleration
     :return:
     """
-    # print(header, file=tf)
 
     cg = CodeGenerator(tf)
     x.genCode(env, cg, CodeGenerator.tempNameInc(4), True)
-
-    # print(tail, file=tf)
-
-
-
 

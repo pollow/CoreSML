@@ -149,6 +149,11 @@ void rtError(const char *s) {
     exit(0);
 }
 
+void printHex(uint32_t x) {
+    printf("%x\n", x);
+    return;
+}
+
 int main() {
     union primative *env = (union primative *)malloc(3 * sizeof(union primative));
     env[0].i = 0; env[1].i = 100; env[2].i = 3;

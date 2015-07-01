@@ -2,14 +2,14 @@ from lexer import tokens
 import ply.yacc as yacc
 from ast import *
 import ctypes
-import sys
-#from parser_test import *
+from pycolorterm.pycolorterm import print_pretty
 
 start = 'dec'
 
 debug = 0
 
 error_handle = 1
+errflag = False
 # 0 Do Nothing; 1 discard the token; 2 discard the whole exp; 3 re-sim  
 #error_handle =  str(sys.argv)
 
@@ -33,16 +33,7 @@ def p_error(p):
         pass
     else:
         print("Nothing would take place to fix the error")
- 
-   
-    #while 1:
-    #tok = yacc.token()             # Get the next token
-    #if not tok or tok.type == 'RBRACE': break
-    #yacc.restart()
-    #yacc.errok() #make the mark of error disapear . Next p_error would be available
-    #yacc.token() #get the next token
-    #yacc.restart() #give up the current statk and restart the analyzer
-
+    errflag = True
 
 def p_program(p):
     '''program  : program ';' exp 
@@ -572,6 +563,7 @@ def p_symbol(p):
     if debug: print(' symbol ')
 
 
-parser = yacc.yacc(debug=True)
+# parser = yacc.yacc(debug=True) if debug else yacc.yacc(debug=False)
+parser = yacc.yacc(debug=False, errorlog=log)
 
 

@@ -439,13 +439,11 @@ class valbind:
         """
         self.pat.calcType(env)
         self.exp.calcType(env)
-        print("valbind checked: ", self.pat.value)
         if self.recordPatBind(env, self.pat, self.exp.type):
             self.pat.update()
             return True
         else:
             return False
-
 
 
     def genCode(self, env, cg, getName, entry = False):
@@ -798,4 +796,26 @@ class Expression:
             self.type = (param, exp)
 
         self.update()
+
+
+def desent(level, x):
+    if isinstance(x, tuple):
+        print("  " * level, end="")
+        print(x)
+        for y in x:
+            if y:
+                desent(level + 1, y)
+
+    elif isinstance(x, list):
+        for y in x:
+            if y:
+                desent(level + 1, y)
+
+    elif type(x) in (TyCon, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, RecordItem, Unit, MRule, Match):
+        print("  " * level, end="")
+        # x.show()
+        print(x)
+        for y in x.dict.values():
+            if y:
+                desent(level + 1, y)
 

@@ -15,8 +15,6 @@ init = {
 }
 
 def typecheck(p):
-    print(p)
-    print(type(p))
 
     if type(p) == Declaration:
         init["__children__"] = []
