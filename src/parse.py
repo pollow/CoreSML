@@ -16,7 +16,7 @@ errflag = [False]
 
 def p_error(p):
     if p:
-        print(colors.error("Syntax error at '%s'" % p.value))
+        print(colors.error("Syntax error near '%s' at line %d" % (p.value, p.lineno)))
     else:
         print(colors.error("Syntax error at EOF"))
     if ( error_handle == 1 ):
