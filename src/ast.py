@@ -820,6 +820,10 @@ class Expression:
             cg.emitInst("; Expression -- Let ")
 
             return rtnName
+        elif cls == "EXPS":
+            for x in r:
+                rtnName = x.genCode(env, cg, getName)
+            return rtnName
         elif cls == "Constant":
             # print("Constant: ", self)
             x = None
