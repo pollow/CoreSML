@@ -736,13 +736,12 @@ class Expression:
             for x in decs:
                 # create a new scope
                 x.checkType(scope)
-            if isinstance(exp, list):
-                for x in exp:
-                    x.calcType(scope)
-                self.type = exp[-1].type
-            else:
-                exp.calcType(scope)
-                self.type = exp.type
+            exp.calcType(scope)
+            self.type = exp.type
+        elif cls == "EXPS":
+            for x in r:
+                x.calcType(env)
+            self.type = r[-1].type
         elif cls == "Constant":
             self.type = r.calcType(env)
         elif cls == "Record":
