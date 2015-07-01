@@ -504,7 +504,6 @@ class valbind:
         else:
             return False
 
-
     def genCode(self, env, cg, getName, entry = False):
         if entry:
             cg.enterMain(env, getName)
@@ -817,6 +816,10 @@ class Expression:
             cg.popScope(getName)
             cg.emitInst("; Expression -- Let ")
 
+            return rtnName
+        elif cls == "EXPS":
+            for x in r:
+                rtnName = x.genCode(env, cg, getName)
             return rtnName
         elif cls == "Constant":
             # print("Constant: ", self)

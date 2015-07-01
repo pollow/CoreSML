@@ -277,7 +277,7 @@ class CodeGenerator:
                 if element in dic:
                     n1,n2,n3=getName(),getName(),getName()
                     self.emitInst("{} = inttoptr i32 {} to i32*".format(n1,param))
-                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element))
+                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element-1))
                     self.emitInst("{} = load i32* {}, align 4".format(n3,n2))
                     x=pat[dic[element]].value.value
                     if isinstance(x,Value):#simple type:const,x,wildcard
