@@ -352,7 +352,10 @@ class Pattern :
                         x.value.genCode(env, cg, tmp, getName, recordOffset)
                     else:
                         tmp = cg.extractRecord(src, i*4, getName)
-                        tmp = cg.loadValue(tmp,getName)
+                        print("~~~~~~~~~~~~~`the last")
+                        print(tmp)
+                        if not isinstance(x.value,Value):
+                            tmp = cg.loadValue(tmp,getName)
                         x.value.genCode(env, cg, tmp, getName,None,1)
     
             cg.indent -= 1
@@ -800,7 +803,9 @@ class Expression:
                     param = p.genCode(env, cg, getName)
                     arg = cg.createParam(getName, callEnv, param)
                     rtn = cg.callFunc(searchEnv(env, caller.reg.id), arg, getName)
-
+                    print("call function ~~~~~~~~~~~~~~~~~~~~~~~")
+                    print(rtn)
+                    print("call function ^^^^^^^^^^^^^^^^^^^^^^")
                 return rtn
         elif cls == "Let":
             # print("Let: ", self)
@@ -896,6 +901,9 @@ class Expression:
                 FLabel=getLabel()
                 cg.MRuleCompare(x[0].value,param,getName,getLabel,FLabel,typ[0]) # compare pattern
                 x[0].genCode(x[1].scope,cg,param,getName,None,1)# fill scope
+                print("-~~~~~~~~~~~~~~~~env check")
+                print(x[1].scope)
+
                 n=x[1].genCode(x[1].scope,cg,getName)# calc exp
                 cg.MRuleRet(n,getName)
                 cg.emitInst("{}:".format(FLabel))

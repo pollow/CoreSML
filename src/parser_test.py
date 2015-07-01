@@ -178,11 +178,12 @@ class ParserTest(unittest.TestCase):
 
         x = 'val it : int = \
         let val f : {1:int ,2:int} -> int = \
-        fn {1=5 , 2=10} => 15 | \
-        {1=x:int , 2=10} =>addi{1=x,2=10} | \
+        fn {1=5 , 2=10} => addi{1=5,2=10} | \
+        {1=x:int , 2=10} =>addi{1=3,2=10} | \
+        {1=x:int , 2=11} =>addi{1=x,2=10} | \
         {2=10,...} =>addi{1=5,2=20} | \
         _ => 100 \
-        in print (intToStr (f {1=5,2=10}));0 end'
+        in print (intToStr (f {1=3,2=11}));0 end'
 
     
         print("Test: ", x)
