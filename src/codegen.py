@@ -58,7 +58,7 @@ class CodeGenerator:
         self.indent += 2
         self.emitInst("{} = add i32 0, 0". format(zero))
         for x in env:
-            if not x[:2] == "__" and isinstance(env[x][0].tycon.type, tuple):
+            if not x[:2] == "__" and env[x][0].tycon is not None and isinstance(env[x][0].tycon.type, tuple):
                 r = self.createRecord(8, getName)
                 self.fillRecord(zero, r[1], 0, getName, ptr=False)
                 n1 = getName()

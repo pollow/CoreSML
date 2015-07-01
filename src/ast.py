@@ -499,6 +499,7 @@ class valbind:
         self.exp.calcType(env)
         if self.recordPatBind(env, self.pat, self.exp.type):
             self.pat.update()
+            self.pat.calcType(env)
             return True
         else:
             return False
