@@ -182,7 +182,7 @@ class ParserTest(unittest.TestCase):
         print("-------------------*******------------------------*******---------------------")
         print(env)
         desent(0, x)
-        codeGen(x, env)
+        # codeGen(x, env)
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------") 
 

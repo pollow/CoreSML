@@ -249,7 +249,14 @@ class CodeGenerator:
         self.emitInst("{}=load i32* {} ,align 4".format(n1,n))
         self.emitInst("ret i32 {}".format(n1))
 
-    def getParamValue(self,getName):
+    def getParamValue1(self,getName):
+        n1,n2=getName(),getName()
+        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
+        self.emitInst("{}= bitcast i32** {} to i32*".format(n2,n1))
+        return n2
+
+
+    def getParamValue2(self,getName):
         n1,n2,n3=getName(),getName(),getName()
         self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
         self.emitInst("{}=load i32** {}, align 4".format(n2,n1))
