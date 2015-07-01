@@ -501,11 +501,10 @@ class valbind:
         print("valbind checked: ", self.pat.value)
         if self.recordPatBind(env, self.pat, self.exp.type):
             self.pat.update()
+            self.pat.calcType(env)
             return True
         else:
             return False
-
-
 
     def genCode(self, env, cg, getName, entry = False):
         if entry:

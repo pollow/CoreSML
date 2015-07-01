@@ -6,7 +6,6 @@ init = {
     '__len__' : 0,
     '__children__' : [],
     'print' : (Value(tycon=TyCon(name="fn", type=(string_type, unit_type)), id='print'), 4),
-
     'muli'   : (Value(tycon=TyCon(name="fn", type=(
         TyCon(name="record", type={ 1 : int_type, 2 : int_type }), int_type)), id='muli'), 8),
 
