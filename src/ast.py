@@ -354,9 +354,10 @@ class Pattern :
                         tmp = cg.extractRecord(src, i*4, getName)
                         print("~~~~~~~~~~~~~`the last")
                         print(tmp)
-                        if not isinstance(x.value,Value):
-                            tmp = cg.loadValue(tmp,getName)
-                        x.value.genCode(env, cg, tmp, getName,None,1)
+                        if isinstance(x.value,Pattern):
+                            if not isinstance(x.value.value,Value):
+                                tmp = cg.loadValue(tmp,getName)
+                            x.value.genCode(env, cg, tmp, getName,None,1)
     
             cg.indent -= 1
             cg.emitInst("; Pattern - Record Exit")

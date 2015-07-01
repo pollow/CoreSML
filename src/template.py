@@ -16,6 +16,7 @@ target triple = "i386-pc-linux-gnu"
 @.str9 = private unnamed_addr constant [8 x i8] c"ABCDEFG\00", align 1
 @.str10 = private unnamed_addr constant [19 x i8] c"Raise A Exception.\00", align 1
 @.str11 = private unnamed_addr constant [26 x i8] c"Should never reach here.\0A\00", align 1
+@.str12 = private unnamed_addr constant [4 x i8] c"%x\0A\00", align 1
 
 ; declare C interface
 
@@ -198,6 +199,16 @@ define void @print(i32* %env) #0 {
   %4 = bitcast i32* %3 to i8**
   %5 = load i8** %4, align 4
   %6 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str, i32 0, i32 0), i8* %5)
+  ret void
+}
+
+
+; Function Attrs: nounwind
+define void @printHex(i32 %x) #0 {
+  %1 = alloca i32, align 4
+  store i32 %x, i32* %1, align 4
+  %2 = load i32* %1, align 4
+  %3 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str12, i32 0, i32 0), i32 %2)
   ret void
 }
 
