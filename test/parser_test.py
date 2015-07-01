@@ -231,14 +231,14 @@ class ParserTest(unittest.TestCase):
     def test_fun_record(self):
         print("--------Code Generator Test----------")
         # x = 'val it : int = let val f : int -> int = fn 0=>7 | 7=>14 | 14=>21 | x:int =>addi {1=x,2=1}  in print (intToStr (f(f (f (f 0)))));0 end'
-        x = 'val it : int = let val f : int -> int = fn 0=>7 | x:int => addi {1=x,2=1} in print (intToStr (f 17));0 end'
-        # x = 'val it : int = \
-        # let val f : {1:int ,2:int} -> int = \
-        # fn {1=5 , 2=10} => 15 | \
-        # {1=x:int , 2=10} => addi{1=x,2=10} | \
-        # {2=10,...} =>addi{1=5,2=20} | \
-        # _ => 100 \
-        # in print (intToStr (f {1=5,2=10}));0 end'
+        # x = 'val it : int = let val f : int -> int = fn 0=>7 | x:int => addi {1=x,2=1} in print (intToStr (f 17));0 end'
+        x = 'val it : int = \
+        let val f : {1:int ,2:int} -> int = \
+        fn {1=5 , 2=10} => 15 | \
+        {1=x:int , 2=10} => (print (intToStr x); addi{1=x,2=10}) | \
+        {2=10,...} =>addi{1=5,2=20} | \
+        _ => 100 \
+        in print (intToStr (f {1=5,2=10}));0 end'
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)

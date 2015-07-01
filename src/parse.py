@@ -298,6 +298,7 @@ def p_atexp(p):
                 | LET decs IN exp END
                 | LET decs IN exps END
                 | '(' exp ')'
+                | '(' exps ')'
     '''
     if len(p) == 2:
         p[0] = Expression( "App", Value(id=p[1]) )
@@ -371,8 +372,6 @@ def p_exp(p):
             | FN match
     '''
     if debug: print(" EXP ")
-    if p[1] == '(':
-        p[0] = Expression( "EXPS", p[2] )
     elif len(p) == 2:
         if len(p[1]) == 1:
             p[0] = p[1][0]
