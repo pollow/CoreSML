@@ -251,16 +251,16 @@ class CodeGenerator:
 
     def getParamValue1(self,getName):
         n1,n2=getName(),getName()
-        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
-        self.emitInst("{}= bitcast i32** {} to i32*".format(n2,n1))
+        self.emitInst("{}= load i32** %scope, align 4".format(n1))
+        self.emitInst("{}= getelementptr inbounds i32* {}, i32 {}".format(n2,n1,1))
         return n2
 
 
     def getParamValue2(self,getName):
         n1,n2,n3=getName(),getName(),getName()
-        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
-        self.emitInst("{}=load i32** {}, align 4".format(n2,n1))
-        self.emitInst("{}=ptrtoint i32* {} to i32".format(n3,n2))
+        self.emitInst("{}=load i32** %scope, align 4".format(n1))
+        self.emitInst("{}= getelementptr inbounds i32* {}, i32 {}".format(n2,n1,1))
+        self.emitInst("{}=load i32* {}, align 4".format(n3,n2))
         return n3
 
 
@@ -279,7 +279,7 @@ class CodeGenerator:
                 if element in dic:
                     n1,n2,n3=getName(),getName(),getName()
                     self.emitInst("{} = inttoptr i32 {} to i32*".format(n1,param))
-                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element))
+                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element-1))
                     self.emitInst("{} = load i32* {}, align 4".format(n3,n2))
                     x=pat[dic[element]].value.value
                     if isinstance(x,Value):#simple type:const,x,wildcard
@@ -287,6 +287,8 @@ class CodeGenerator:
                             pass
                         elif x.value!=None: #const
                             comp=self.MRuleCompare(x.value,n3,getName,getLabel)
+                            print(x.value)
+                            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MRuleCompare")
                             l1=getLabel()
                             self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,FLabel))
                             self.emitInst("{}:".format(l1))
