@@ -19,6 +19,7 @@ class CodeGenerator:
         self.globalStr = []
         self.indent = 0
         self.insts = []
+        self.insts_stack = []
         self.write(header)
 
     def __del__(self):
@@ -87,6 +88,7 @@ class CodeGenerator:
             rtn, n1 = getName(), getName()
             # TODO bitcast
             self.emitInst("{} = call {} @{} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
+
             self.allocate(n1, "i32", 4)
             if fn.type[1] in ["record", "fn", "string"]:
                 # TODO datatype
@@ -97,6 +99,7 @@ class CodeGenerator:
             self.emitInst("store i32 {}, i32* {}, align 4".format(n2, n1))
             self.emitInst("; callFunc - Exit")
             return n1
+
 
     def extractVar(self, offset, levels, getName):
         # return a pointer
@@ -115,14 +118,18 @@ class CodeGenerator:
         return n
         # TODO did not save to stack. Dangling pointer if freed.
 
-    def fillScope(self, name, offset, getName):
+    def fillScope(self, name, offset, getName,func=None):
         # name is a pointer
         n1, n2, n3 = getName(), getName(), getName()
-        self.emitInst("{} = load i32* {}, align 4".format(n1, name))
-        self.emitInst("{} = load i32** %scope, align 4".format(n2))
-        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n3, n2, int(offset/4)))
-        self.emitInst("store i32 {}, i32* {}, align 4".format(n1, n3))
+        self.emitInst("{} = load i32** %scope, align 4".format(n1))
+        self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, n1, int(offset/4)))
+        if func == None:
+            self.emitInst("{} = load i32* {}, align 4".format(n3, name))
+        else:
+            self.emitInst("{} = ptrtoint i32* {} to i32".format(n3, n1))
+        self.emitInst("store i32 {}, i32* {}, align 4".format(n3, n2))
         self.emitInst("; fillScope")
+
 
     def createParam(self, getName, fnEnv, param):
         n1, n2, n3, n4, n5, n6 = getName(), getName(), getName(), getName(), getName(), getName()
@@ -212,6 +219,88 @@ class CodeGenerator:
     def allocate(self, name, tyname, size):
         self.emitInst("{} = alloca {}, align {}".format(name, tyname, size))
 
+    def decFuncHead1(self):
+        self.insts_stack.append((self.insts, self.indent))
+        self.insts = []
+        self.indent = 0
+        getName=CodeGenerator.tempNameInc(0)
+        self.emitInst("define i32 @f(i32* %p) {")
+        self.emitInst("%scope = alloca i32*, align 4")
+        self.emitInst("store i32* %p, i32** %scope, align 4")
+        self.indent += 1
+        return getName
+
+    def decFuncHead2(self):
+        getLabel=CodeGenerator.tempLabelInc(0)
+        return getLabel
+
+    def decFuncTail(self):
+        # self.emitInst("call void %rtError(i8* getelementptr inbounds ([19 x i8]* @.str10, i32 0, i32 0))")
+        self.emitInst("ret i32 0")
+        self.indent -= 1
+        self.emitInst("}")
+        self.write("\n".join(self.insts)+"\n")
+        self.insts, self.indent = self.insts_stack.pop()
+
+    def MRuleRet(self,n,getName):
+        n1=getName()
+        self.emitInst("{}=load i32* {} ,align 4".format(n1,n))
+        self.emitInst("ret i32 {}".format(n1))
+
+    def getParamValue1(self,getName):
+        n1,n2=getName(),getName()
+        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
+        self.emitInst("{}= bitcast i32** {} to i32*".format(n2,n1))
+        return n2
+
+
+    def getParamValue2(self,getName):
+        n1,n2,n3=getName(),getName(),getName()
+        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
+        self.emitInst("{}=load i32** {}, align 4".format(n2,n1))
+        self.emitInst("{}=ptrtoint i32* {} to i32".format(n3,n2))
+        return n3
+
+
+    def MRuleCompare(self,pat,param,getName,getLabel,FLabel=None,compound=None):
+        if compound==None:
+            n1=getName()
+            self.emitInst("{}=icmp eq i32 {}, {}".format(n1,pat,param))
+            return n1
+        else: # compound is a dict
+            r=0
+            dic={}
+            for i in range(len(pat)):
+                if pat[i].lab!=None and pat[i].value!=None: #wildcard
+                    dic[pat[i].lab]=i
+            for element in compound:
+                if element in dic:
+                    n1,n2,n3=getName(),getName(),getName()
+                    self.emitInst("{} = inttoptr i32 {} to i32*".format(n1,param))
+                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element))
+                    self.emitInst("{} = load i32* {}, align 4".format(n3,n2))
+                    x=pat[dic[element]].value.value
+                    if isinstance(x,Value):#simple type:const,x,wildcard
+                        if x.wildcard==True: #wildcard
+                            pass
+                        elif x.value!=None: #const
+                            comp=self.MRuleCompare(x.value,n3,getName,getLabel)
+                            l1=getLabel()
+                            self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,FLabel))
+                            self.emitInst("{}:".format(l1))
+                        else: #x
+                            pass
+                    else: #compound type
+                        self.MRuleCompare(x,n3,getName,FLabel,compound[element])
+
+
+    def MRuleBr1(self,comp,l1,l2):
+        self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,l2))
+        self.emitInst("{}:".format(l1))
+
+    def MRuleBr2(self,l2):
+        self.emitInst("{}:".format(l2))
+
     @staticmethod
     def tempNameInc(x):
         c = [x]
@@ -223,13 +312,21 @@ class CodeGenerator:
 
         return fun
 
+    @staticmethod
+    def tempLabelInc(x):
+        c=[x]
+        def fun():
+            c[0]+=1
+            return "L{}".format(c[0])
+        return fun
+
 
 
 def codeGen(x, env, tf = "test.ll"):
 
     """
     :param x: Decleration
-    :return:
+    :return: 
     """
 
     cg = CodeGenerator(tf)

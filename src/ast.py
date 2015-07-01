@@ -14,7 +14,7 @@ def calcLevels(env, name):
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
-        print("Search Env: ", env[name])
+        # print("Search Env: ", env[name])
         return 0
     else:
         return 1 + calcLevels(env["__parent__"], name)
@@ -31,13 +31,15 @@ def insertScope(env, name, value):
     :param value: Value
     :return:
     """
+    if name==None:
+        return 
     if name in env:
         raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
     env[name] = (value, env["__len__"])
     env["__len__"] += TyCon.calcSize(value.type)
 
 
-def searchTyCon(tyc,name):
+def searchTyCon(tyc,name,env):
     if not isinstance(tyc.type,list):
         return False
     for ele in tyc.type: 
@@ -47,10 +49,10 @@ def searchTyCon(tyc,name):
         if isinstance(name,tuple): #datatype with param
             if ele[0].id==name[0]:
                 if len(name[1].value)==1 and isinstance(ele[1].type,str):
-                    return ele[1].type==(name[1].value)[0].value.calcType()
+                    return ele[1].type==(name[1].value)[0].value.calcType(env)
                 else:
                     for index in range(len(name[1].value)):
-                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType():
+                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType(env):
                             pass
                         else:
                             return False
@@ -62,14 +64,14 @@ def searchEnvO(env, name, typ=None):
         if env==None:
             return None
         for ele in env.keys():
-            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name):
+            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name,env):
                 return ele
         return searchEnvO(env["__parent__"], name , 1)
     if env == None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
-        print("Search Env: ", env[name])
+        # print("Search Env: ", env[name])
         return env[name]
     else:
         return searchEnvO(env["__parent__"], name)
@@ -197,6 +199,7 @@ class Declaration :
         return self.__class__.__name__
 
     def checkType(self, env):
+        # print("dec checkType:",self.bind.checkType(env))
         if not self.bind.checkType(env):
             raise SMLSyntaxError("Valbind with different type.")
         else:
@@ -240,21 +243,20 @@ class Value :
 
     @staticmethod
     def flattenType(env, tycon):
-        print("FlattenType: ", tycon)
+        # print("FlattenType: ", tycon)
         if tycon is None:
             return None
         name = tycon.calcType(env)
         if isinstance(name, tuple):
             # A function
             rtn = (Value.flattenType(env, name[0]), Value.flattenType(env, name[1]))
-            print("FN: ", rtn)
+            # print("FN: ", rtn)
             return rtn
         elif isinstance(name, dict): # records and user defined datatypes are all record
             # just a record type descriptor
             t = {}
             for x in name:
                 t[x] = Value.flattenType(env, name[x])
-
             return t
         elif isinstance(name, str):
             return name
@@ -270,9 +272,11 @@ class Value :
         :param env: dict[string, Value]
         :return: string | ( string | dict[string | int, string] ) | dict[string | int, string]
         """
+
         if self.type:
             return self.type
         self.type = Value.flattenType(env, self.tycon)
+        # print("after",self)
         self.update()
         return self.type
 
@@ -316,7 +320,7 @@ class Pattern :
 
             self.type = t
             self.record = v
-            print("Record Pattern: ", self.record)
+            # print("Record Pattern: ", self.record)
         elif isinstance(self.value,tuple):
             tmp=searchEnvO(env,self.value,1)
             if tmp==False:
@@ -327,21 +331,30 @@ class Pattern :
         self.update()
         return self.type
 
-    def genCode(self, env, cg, src, getName, recordOffset = None):
+    def genCode(self, env, cg, src, getName, recordOffset = None,func=None):
         # src is i32* pointer to real value
         if isinstance(self.value, Value):
-            cg.fillScope(src, getOffset(env, self.value.id), getName)
-            cg.emitInst("; Pattern - Value")
+            if self.value.id!=None:
+                cg.fillScope(src, getOffset(env, self.value.id), getName,func)
+                cg.emitInst("; Pattern - Value")
         elif isinstance(self.value, list):
             # real value is a i32*, load as i32 and convert to i32*
             cg.emitInst("; Pattern - Record Enter")
             cg.indent += 1
-            src = cg.loadValue(src, getName)
+            if func==None:
+                src = cg.loadValue(src, getName)
             src = cg.intToPtr(src, getName)
-            for x in self.value:
-                tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
-                x.value.genCode(env, cg, tmp, getName, recordOffset)
-
+            for i in range(len(self.value)):
+                x=(self.value)[i]
+                if x.value!=None and x.lab!=None:
+                    if recordOffset!=None:
+                        tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
+                        x.value.genCode(env, cg, tmp, getName, recordOffset)
+                    else:
+                        tmp = cg.extractRecord(src, i*4, getName)
+                        tmp = cg.loadValue(tmp,getName)
+                        x.value.genCode(env, cg, tmp, getName,None,1)
+    
             cg.indent -= 1
             cg.emitInst("; Pattern - Record Exit")
 
@@ -431,12 +444,57 @@ class valbind:
             insertScope(env, v.id, v) # env[v.id] = v
         return True
 
+    @staticmethod
+    def checkTypeExpPat(expType,patType):
+        if type(expType)!=type(patType):
+            return False
+        if isinstance(expType,str):
+            return expType==patType
+        elif isinstance(expType,tuple):
+            return valbind.checkTypeExpPat(expType[1],patType[1]) and valbind.checkTypeExpPat(expType[0],patType[0])
+        elif isinstance(expType,dict):
+            key1=expType.keys()
+            key2=patType.keys()
+            if key1 & key2 == key1 | key2 or key1 <= key2 and key2-key1 == {'__wildCard__'} or key1 >= key2 and key1-key2 == {'__wildCard__'}:
+                for key in key1 & key2:
+                    if not valbind.checkTypeExpPat(expType[key],patType[key]):
+                        return False
+                return True
+            elif not '__wildCard__' in key1 | key2:
+                return False
+            elif not  '__wildCard__' in key1 & key2 and ( '__wildCard__' in key1 and expType['__wildCard__']==False or '__wildCard__' in key2 and expType['__wildCard__']==False ):
+                return False
+            elif not '__wildCard__' in key1 & key2 and '__wildCard__' in key1 and expType['__wildCard__']==True and key2 > (key1 - '__wildCard__'):
+                for key in key1-'__wildCard__':
+                    if not valbind.checkTypeExpPat(expType[key],patType[key]):
+                        return False
+                return True
+            elif '__wildCard__' in key1 & key2 and expType['__wildCard__']==True and patType['__wildCard__']==True:
+                for key in (key1 & key2) -'__wildCard__':
+                    if not valbind.checkTypeExpPat(expType[key],patType[key]):
+                        return False
+                return True
+            ##TODO
+            return False
 
     def checkType(self, env):
         """
         :param env: dict
         :return: bool
         """
+
+        # # print("valbind pat:",self.pat.calcType(env))
+        # print("valbind exp:",self.exp.calcType(env))
+        # patType=self.pat.calcType(env)
+        # expType=self.exp.calcType(env)
+        # if patType == expType or isinstance(expType,tuple) and valbind.checkTypeExpPat(expType,patType) : 
+        #     # print("valbind checked: ", self.pat.value)
+        #     if isinstance(self.pat.value, list): # record
+        #         self.recordPatBind(env, self.pat)
+        #     else:
+        #         insertScope(env, self.pat.value.id, self.pat.value)
+        #         # env[self.pat.value.id] = self.pat.value
+
         self.pat.calcType(env)
         self.exp.calcType(env)
         if self.recordPatBind(env, self.pat, self.exp.type):
@@ -460,7 +518,10 @@ class valbind:
             cg.emitInst("{} = load {}* {}, align {}".format(n1, IRTyName[pat.type], rtnName, self.pat.size))
             cg.rtnMain(n1)
         else:
-            pat.genCode(env, cg, rtnName, getName, self.exp.record)
+            if self.exp.cls=="Fn":
+                pat.genCode(env, cg, rtnName, getName, self.exp.record,1)
+            else:
+                pat.genCode(env, cg, rtnName, getName, self.exp.record)
             cg.indent -= 1
             cg.emitInst("; valbind exit")
 
@@ -521,10 +582,11 @@ class Expression:
             # env[pat.value.id] = pat.value
         elif isinstance(pat.value, list):
             for x in pat.value:
-                Expression.flattenBind(env, x.value)
+                if x.value!=None:
+                    Expression.flattenBind(env, x.value)
         elif isinstance(pat.value,tuple):
             for x in (pat.value)[1].value:
-                Expression.flattenBind(env,x.value)
+                Expression.flattenBind(env, x.value)
 
 
 
@@ -533,7 +595,7 @@ class Expression:
         :param applist: list[Expression]
         :param env: dict
         """
-
+        # print("calcApplist")
         applist[0].calcType(env)
         rtn = applist[0].type # function type
 
@@ -541,7 +603,7 @@ class Expression:
             x = applist[i]
             """ :type : Expression """
             x.calcType(env)
-            print('Function call ', i, ' : ', rtn)
+            # print('Function call ', i, ' : ', rtn)
             if rtn[0] != x.type:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
@@ -553,16 +615,19 @@ class Expression:
         for x in self.dict:
             self.dict[x] = getattr(self, x)
 
-    def calcFun(self,env,typ=1):
+    def calcFun(self,env):
         #assert len(self.reg) == 1 # datatype is not supported not
         #x = r[0]
         patType=None
         expType=None
-        for x in r: 
+        for x in self.reg: 
             """ :type:(Pattern, Expression)"""
             if isinstance(x[0].value,Value):# 1.single value 2.constant 3.wildcard 4.datatype without param
+                # print("calcFun::value") ######
                 if x[0].value.wildcard==True: # wildcard
-                    pass #do nothing
+                    if patType!=None:
+                        x[0].type=patType
+                        x[0].update()
                 else :
                     param = x[0].calcType(env)
                     if isinstance(param,str): # constant ; single value with ty mentioned
@@ -570,7 +635,7 @@ class Expression:
                             raise SMLSyntaxError("Parameters doesn't match!")
                         else:
                             patType=param
-                    elif param==None: # datatype without param
+                    elif param==None: # datatype without param; single value without ty mentioned
                         tmp=searchEnvO(env,x[0].value,1)
                         if tmp==False: # cannot find datatype in env
                             raise SMLSyntaxError("Parameters doesn't match!")
@@ -580,6 +645,7 @@ class Expression:
                             patType=tmp;
 
             elif isinstance(x[0].value,tuple): #datatype with param
+                # print("calcFun:: tuple")   #####
                 tmp=searchEnvO(env,x[0].value,1)
                 if tmp==False:
                     raise SMLSyntaxError("Parameters doesn't match!")
@@ -589,12 +655,13 @@ class Expression:
                     patType=tmp
 
             elif isinstance(x[0].value,list): #[RecordItem,...]
+                # print("calcFun::list") #####
                 t={"__wildCard__":False}
                 for element in x[0].value:
-                    if element.value==None and element.lab==None:
+                    if element.value==None and element.lab==None: #...
                         t['__wildCard__']=True
                     else:
-                        tmp=element.value.calcType()
+                        tmp=element.value.calcType(env)
                         t[element.lab]=tmp
                 if patType == None:
                     patType=t
@@ -625,24 +692,33 @@ class Expression:
             scope = appendNewScope(env)
             # bind to new scope
             # check expression return type
+            # print("before exp.flattern")
             Expression.flattenBind(scope, x[0])
             exp = x[1].calcType(scope)
             if expType != None and expType != exp:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
                 expType=exp
-
+        if '__wildCard__' in patType:
+            del(patType['__wildCard__'])
+        # print("fn type: ",(patType,expType))
         return (patType,expType)
 
     def calcType(self, env):
-        print("Get into an expression, the scope is: ", env)
+        # print("Get into an expression, the scope is: ", env)
+        # print(env['mul'][0])
+        # print(env['mul'][0].id)
+        # print(env['mul'][0].tycon)
+        # print(env['mul'][0].tycon.type)
+        # print((env['mul'][0].tycon.type)[0])
+        # print(env['mul'][0].tycon.type[1])
         cls = self.cls
         r = self.reg
         """ :type : list[exp] | Value | [RecordItem] """
         self.scope = env
         if cls == "App":
             if isinstance(r, Value):
-                print("R: ", r)
+                # print("R: ", r)
                 v = searchEnv(env, r.id)
                 self.type = v.calcType(env)
             else:
@@ -650,20 +726,19 @@ class Expression:
                 # function should be the first argument
                 self.type = self.calcAppList(r, env)
         elif cls == "Let":
-            print("LET: ", self)
+            # print("LET: ", self)
             scope = appendNewScope(env)
             self.letScope = scope
             decs, exp = r
             for x in decs:
                 # create a new scope
                 x.checkType(scope)
-            if isinstance(exp, list):
-                for x in exp:
-                    x.calcType(scope)
-                self.type = exp[-1].type
-            else:
-                exp.calcType(scope)
-                self.type = exp.type
+            exp.calcType(scope)
+            self.type = exp.type
+        elif cls == "EXPS":
+            for x in r:
+                x.calcType(env)
+            self.type = r[-1].type
         elif cls == "Constant":
             self.type = r.calcType(env)
         elif cls == "Record":
@@ -680,18 +755,10 @@ class Expression:
 
             self.type = t
             self.record = v
-            print("Record Expression: ", self.record)
+            # print("Record Expression: ", self.record)
         elif cls == "Fn":
-            assert len(self.reg) == 1 # datatype is not supported not
-            x = r[0]
-            """ :type:(Pattern, Expression)"""
-            param = x[0].calcType(env)
-            scope = appendNewScope(env)
-            # bind to new scope
-            # check expression return type
-            Expression.flattenBind(scope, x[0])
-            exp = x[1].calcType(scope)
-            self.type = (param, exp)
+            # print("before FN")
+            self.type=self.calcFun(env)
 
         self.update()
         return self.type
@@ -708,7 +775,7 @@ class Expression:
         self.scope = env
         if cls == "App":
             if isinstance(r, Value):
-                print("R: ", r)
+                # print("R: ", r)
                 n = cg.extractVar(getOffset(env, r.id), calcLevels(env, r.id), getName)
                 cg.emitInst("; Expression -- App ")
                 return n
@@ -732,7 +799,7 @@ class Expression:
 
                 return rtn
         elif cls == "Let":
-            print("Let: ", self)
+            # print("Let: ", self)
             scope = self.letScope
             cg.pushNewScope(getName, scope["__len__"])
             decs, exp = r
@@ -747,12 +814,11 @@ class Expression:
                 rtnName = exp.genCode(scope, cg, getName)
 
             cg.popScope(getName)
-
             cg.emitInst("; Expression -- Let ")
 
             return rtnName
         elif cls == "Constant":
-            print("Constant: ", self)
+            # print("Constant: ", self)
             x = None
             if r.isConsStr():
                 x = cg.emitGlobalStr(r.value + '\x00')
@@ -784,18 +850,50 @@ class Expression:
             cg.emitInst("; Expression -- Record Exit")
             return rtn
         elif cls == "Fn":
-            assert len(self.reg) == 1 # datatype is not supported not
-            x = r[0]
-            """ :type:(Pattern, Expression)"""
-            param = x[0].calcType(env)
-            scope = appendNewScope(env)
-            # bind to new scope
-            # check expression return type
-            Expression.flattenBind(scope, x[0])
-            exp = x[1].calcType(scope)
-            self.type = (param, exp)
+            cg.emitInst("; Expression -- FN")
+            print("####################################")
+            print(env)
+            print("####################################")
+            getName=cg.decFuncHead1() #print function head
+            getLabel=cg.decFuncHead2()
+
+            self.genCodeFuncBody(cg,env,getName,getLabel,self.type)
+
+            getName=cg.decFuncTail() #print function tail
 
         self.update()
+
+    def genCodeFuncBody(self,cg,env,getName,getLabel,typ):
+        for i in range(len(self.reg)): #self.reg : [(pattern,exp),...]
+            x=(self.reg)[i]
+            if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
+                if x[0].value.wildcard==True: #wildcard
+                    n=x[1].genCode(env,cg,getName)
+                    cg.MRuleRet(n,getName)
+                    if i != len(self.reg):
+                        l1=getLabel()
+                        cg.emitInst("{}:".format(l1))
+                elif x[0].value.value!=None: #constant
+                    param=cg.getParamValue2(getName)
+                    comp=cg.MRuleCompare(x[0].value.value,param,getName,getLabel)
+                    l1,l2=getLabel(),getLabel()
+                    cg.MRuleBr1(comp,l1,l2)
+                    n=x[1].genCode(env,cg,getName)
+                    cg.MRuleRet(n,getName)
+                    cg.MRuleBr2(l2)
+                else: #x
+                    param=cg.getParamValue1(getName)
+                    x[0].genCode(x[1].scope,cg,param,getName)
+                    n=x[1].genCode(x[1].scope,cg,getName)
+                    cg.MRuleRet(n,getName)
+            elif isinstance((x[0].value),list):# compound type
+                param=cg.getParamValue2(getName)# getparam
+                FLabel=getLabel()
+                cg.MRuleCompare(x[0].value,param,getName,getLabel,FLabel,typ[0]) # compare pattern
+                x[0].genCode(x[1].scope,cg,param,getName,None,1)# fill scope
+                n=x[1].genCode(x[1].scope,cg,getName)# calc exp
+                cg.MRuleRet(n,getName)
+                cg.emitInst("{}:".format(FLabel))
 
 
 def desent(level, x):
@@ -818,4 +916,3 @@ def desent(level, x):
         for y in x.dict.values():
             if y:
                 desent(level + 1, y)
-

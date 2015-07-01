@@ -289,6 +289,7 @@ def p_atexp(p):
                 | LET decs IN exp END
                 | LET decs IN exps END
                 | '(' exp ')'
+                | '(' exps ')'
     '''
     if len(p) == 2:
         p[0] = Expression( "App", Value(id=p[1]) )
@@ -342,17 +343,18 @@ def p_exprow(p):
 def p_exps(p):
     ''' exps    : exp ';' exp
     '''
-    p[0] = [p[1], p[3]]
+    p[0] = Expression("EXPS", [p[1], p[3]])
 
 
 def p_exps_(p):
     ''' exps    : exp ';' exps
     '''
-    p[0] = [p[1]] + p[3]
+    p[0] = Expression("EXPS", [p[1]] + p[3].reg)
 
 
 def p_exp(p):
     ''' exp : app_exp
+            | '(' exps ')'
             | exp ':' ty
             | exp ANDALSO exp
             | exp ORELSE exp
@@ -361,7 +363,7 @@ def p_exp(p):
             | FN match
     '''
     if debug: print(" EXP ")
-    if len(p) == 2:
+    elif len(p) == 2:
         if len(p[1]) == 1:
             p[0] = p[1][0]
         else:
