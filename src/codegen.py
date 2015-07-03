@@ -223,16 +223,15 @@ class CodeGenerator:
         self.insts_stack.append((self.insts, self.indent))
         self.insts = []
         self.indent = 0
-        getName=CodeGenerator.tempNameInc(0)
+        getName, getLabel = CodeGenerator.tempNameInc(0), CodeGenerator.tempLabelInc(0)
         self.emitInst("define i32 @f(i32* %p) {")
+        self.indent += 1
         self.emitInst("%scope = alloca i32*, align 4")
         self.emitInst("store i32* %p, i32** %scope, align 4")
-        self.indent += 1
-        return getName
 
-    def decFuncHead2(self):
-        getLabel=CodeGenerator.tempLabelInc(0)
-        return getLabel
+        self.emitInst("; Enter Function")
+        return getName, getLabel
+
 
     def decFuncTail(self):
         # self.emitInst("call void %rtError(i8* getelementptr inbounds ([19 x i8]* @.str10, i32 0, i32 0))")
@@ -244,28 +243,28 @@ class CodeGenerator:
 
     def MRuleRet(self,n,getName):
         n1=getName()
-        self.emitInst("{}=load i32* {} ,align 4".format(n1,n))
+        self.emitInst("{} = load i32* {} ,align 4".format(n1,n))
         self.emitInst("ret i32 {}".format(n1))
 
     def getParamValue1(self,getName):
         n1,n2=getName(),getName()
-        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
-        self.emitInst("{}= bitcast i32** {} to i32*".format(n2,n1))
+        self.emitInst("{} = getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
+        self.emitInst("{} = bitcast i32** {} to i32*".format(n2,n1))
         return n2
 
 
     def getParamValue2(self,getName):
         n1,n2,n3=getName(),getName(),getName()
-        self.emitInst("{}= getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
-        self.emitInst("{}=load i32** {}, align 4".format(n2,n1))
-        self.emitInst("{}=ptrtoint i32* {} to i32".format(n3,n2))
+        self.emitInst("{} = getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
+        self.emitInst("{} = load i32** {}, align 4".format(n2,n1))
+        self.emitInst("{} = ptrtoint i32* {} to i32".format(n3,n2))
         return n3
 
 
     def MRuleCompare(self,pat,param,getName,getLabel,FLabel=None,compound=None):
         if compound==None:
             n1=getName()
-            self.emitInst("{}=icmp eq i32 {}, {}".format(n1,pat,param))
+            self.emitInst("{} = icmp eq i32 {}, {}".format(n1,pat,param))
             return n1
         else: # compound is a dict
             r=0

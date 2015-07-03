@@ -221,7 +221,6 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
-
     def test_fun_add(self):
         print("--------Code Generator Test----------")
         x = 'val it : int = let val x = 10 in (print (intToStr (addi {1=x, 2=4})); 0) end'
@@ -241,6 +240,20 @@ class ParserTest(unittest.TestCase):
         codeGen(x, env)
         self.assertEqual(True, True)
 
+    def test_fun_bug(self):
+        print("--------Code Generator Test----------")
+        x = ''' val it =
+            let val f : { 1 : int, 2 : int }  -> int =
+                fn {1 = 5, 2 = 10} => 10
+                 | {1 = x : int, 2 = 20} => x
+            in print (intToStr (f {1 = 5, 2 = 10})); 0 end '''
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
 
 
 if __name__ == '__main__':

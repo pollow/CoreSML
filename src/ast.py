@@ -858,12 +858,12 @@ class Expression:
             print("####################################")
             print(env)
             print("####################################")
-            getName=cg.decFuncHead1() #print function head
-            getLabel=cg.decFuncHead2()
+            getName,getLabel = cg.decFuncHead1() #print function head
+
 
             self.genCodeFuncBody(cg,env,getName,getLabel,self.type)
 
-            getName=cg.decFuncTail() #print function tail
+            getName = cg.decFuncTail() #print function tail
 
         self.update()
 
