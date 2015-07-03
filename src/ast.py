@@ -1,92 +1,3 @@
-class SMLSyntaxError(BaseException):
-    def __init__(self, s):
-        self.s = s
-
-    def __str__(self):
-        return self.s
-
-
-IRTyName = {"int" : "i32", "real": "float", "char": "i8",
-            "string": "i8*", "unit": "void", "record": "i32*", "fn": "i32*"}
-
-def calcLevels(env, name):
-    if env == None:
-        raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
-        return None
-    elif name in env:
-        # print("Search Env: ", env[name])
-        return 0
-    else:
-        return 1 + calcLevels(env["__parent__"], name)
-
-
-def appendNewScope(env):
-    scope = {"__parent__": env, "__len__": 4, "__children__": []}
-    env["__children__"].append(scope)
-    return scope
-
-
-def insertScope(env, name, value):
-    """
-    :param value: Value
-    :return:
-    """
-    if name==None:
-        return 
-    if name in env:
-        raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
-    env[name] = (value, env["__len__"])
-    env["__len__"] += TyCon.calcSize(value.type)
-
-
-def searchTyCon(tyc,name,env):
-    if not isinstance(tyc.type,list):
-        return False
-    for ele in tyc.type: 
-        if isinstance(name,Value): #datatype without param
-            if ele[0].id==name.id and ele[1]==unit_type:
-                return True
-        if isinstance(name,tuple): #datatype with param
-            if ele[0].id==name[0]:
-                if len(name[1].value)==1 and isinstance(ele[1].type,str):
-                    return ele[1].type==(name[1].value)[0].value.calcType(env)
-                else:
-                    for index in range(len(name[1].value)):
-                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType(env):
-                            pass
-                        else:
-                            return False
-                    return True
-    return False
-
-def searchEnvO(env, name, typ=None):
-    if typ!=None:
-        if env==None:
-            return None
-        for ele in env.keys():
-            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name,env):
-                return ele
-        return searchEnvO(env["__parent__"], name , 1)
-    if env == None:
-        raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
-        return None
-    elif name in env:
-        # print("Search Env: ", env[name])
-        return env[name]
-    else:
-        return searchEnvO(env["__parent__"], name)
-
-
-def getOffset(env, name):
-    return searchEnvO(env, name)[1]
-
-
-def searchEnv(env, name):
-    t = searchEnvO(env, name)
-    if isinstance(t, Value):
-        pass
-    return t[0]
-
 
 class Unit:
     def __init__(self):
@@ -170,6 +81,115 @@ primative_tycon = {
     'char'      : char_type
 }
 
+def desent(level, x):
+    if isinstance(x, tuple):
+        print("  " * level, end="")
+        print(x)
+        for y in x:
+            if y:
+                desent(level + 1, y)
+
+    elif isinstance(x, list):
+        for y in x:
+            if y:
+                desent(level + 1, y)
+
+    elif type(x) in (TyCon, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, RecordItem, Unit, MRule, Match):
+        print("  " * level, end="")
+        # x.show()
+        print(x)
+        for y in x.dict.values():
+            if y:
+                desent(level + 1, y)
+
+class SMLSyntaxError(BaseException):
+    def __init__(self, s):
+        self.s = s
+
+    def __str__(self):
+        return self.s
+
+
+IRTyName = {"int" : "i32", "real": "float", "char": "i8",
+            "string": "i8*", "unit": "void", "record": "i32*", "fn": "i32*"}
+
+def calcLevels(env, name):
+    if env == None:
+        raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
+        return None
+    elif name in env:
+        # print("Search Env: ", env[name])
+        return 0
+    else:
+        return 1 + calcLevels(env["__parent__"], name)
+
+
+def appendNewScope(env):
+    scope = {"__parent__": env, "__len__": 4, "__children__": []}
+    env["__children__"].append(scope)
+    return scope
+
+
+def insertScope(env, name, value):
+    """
+    :param value: Value
+    :return:
+    """
+    if name==None:
+        return
+    if name in env:
+        raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
+    env[name] = (value, env["__len__"])
+    env["__len__"] += TyCon.calcSize(value.type)
+
+
+def searchTyCon(tyc,name,env):
+    if not isinstance(tyc.type,list):
+        return False
+    for ele in tyc.type:
+        if isinstance(name,Value): #datatype without param
+            if ele[0].id==name.id and ele[1]==unit_type:
+                return True
+        if isinstance(name,tuple): #datatype with param
+            if ele[0].id==name[0]:
+                if len(name[1].value)==1 and isinstance(ele[1].type,str):
+                    return ele[1].type==(name[1].value)[0].value.calcType(env)
+                else:
+                    for index in range(len(name[1].value)):
+                        if (ele[1].type)[index]==(name[1].value)[index].value.calcType(env):
+                            pass
+                        else:
+                            return False
+                    return True
+    return False
+
+def searchEnvO(env, name, typ=None):
+    if typ!=None:
+        if env==None:
+            return None
+        for ele in env.keys():
+            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name,env):
+                return ele
+        return searchEnvO(env["__parent__"], name , 1)
+    if env == None:
+        raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
+        return None
+    elif name in env:
+        # print("Search Env: ", env[name])
+        return env[name]
+    else:
+        return searchEnvO(env["__parent__"], name)
+
+
+def getOffset(env, name):
+    return searchEnvO(env, name)[1]
+
+
+def searchEnv(env, name):
+    t = searchEnvO(env, name)
+    if isinstance(t, Value):
+        pass
+    return t[0]
 
 class VCon:
     def __init__(self, name, type):
@@ -701,17 +721,9 @@ class Expression:
                 expType=exp
         if '__wildCard__' in patType:
             del(patType['__wildCard__'])
-        # print("fn type: ",(patType,expType))
         return (patType,expType)
 
     def calcType(self, env):
-        # print("Get into an expression, the scope is: ", env)
-        # print(env['mul'][0])
-        # print(env['mul'][0].id)
-        # print(env['mul'][0].tycon)
-        # print(env['mul'][0].tycon.type)
-        # print((env['mul'][0].tycon.type)[0])
-        # print(env['mul'][0].tycon.type[1])
         cls = self.cls
         r = self.reg
         """ :type : list[exp] | Value | [RecordItem] """
@@ -726,7 +738,6 @@ class Expression:
                 # function should be the first argument
                 self.type = self.calcAppList(r, env)
         elif cls == "Let":
-            # print("LET: ", self)
             scope = appendNewScope(env)
             self.letScope = scope
             decs, exp = r
@@ -755,9 +766,7 @@ class Expression:
 
             self.type = t
             self.record = v
-            # print("Record Expression: ", self.record)
         elif cls == "Fn":
-            # print("before FN")
             self.type=self.calcFun(env)
 
         self.update()
@@ -900,23 +909,3 @@ class Expression:
                 cg.emitInst("{}:".format(FLabel))
 
 
-def desent(level, x):
-    if isinstance(x, tuple):
-        print("  " * level, end="")
-        print(x)
-        for y in x:
-            if y:
-                desent(level + 1, y)
-
-    elif isinstance(x, list):
-        for y in x:
-            if y:
-                desent(level + 1, y)
-
-    elif type(x) in (TyCon, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, RecordItem, Unit, MRule, Match):
-        print("  " * level, end="")
-        # x.show()
-        print(x)
-        for y in x.dict.values():
-            if y:
-                desent(level + 1, y)
