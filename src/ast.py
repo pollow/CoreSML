@@ -168,7 +168,7 @@ def searchEnvO(env, name, typ=None):
         if env==None:
             return None
         for ele in env.keys():
-            if isinstance(env[ele],TyCon) and searchTyCon(env[ele],name,env):
+            if isinstance(env[ele], TyCon) and searchTyCon(env[ele],name,env):
                 return ele
         return searchEnvO(env["__parent__"], name , 1)
     if env == None:
@@ -831,7 +831,6 @@ class Expression:
                 rtnName = x.genCode(env, cg, getName)
             return rtnName
         elif cls == "Constant":
-            # print("Constant: ", self)
             x = None
             if r.isConsStr():
                 x = cg.emitGlobalStr(r.value + '\x00')
@@ -867,12 +866,11 @@ class Expression:
             print("####################################")
             print(env)
             print("####################################")
-            getName,getLabel = cg.decFuncHead1() #print function head
-
+            getName,getLabel = cg.decFuncHead() #print function head
 
             self.genCodeFuncBody(cg,env,getName,getLabel,self.type)
 
-            getName = cg.decFuncTail() #print function tail
+            getName = cg.decFuncTail()
 
         self.update()
 
@@ -880,25 +878,28 @@ class Expression:
         for i in range(len(self.reg)): #self.reg : [(pattern,exp),...]
             x=(self.reg)[i]
             if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
-                if x[0].value.wildcard==True: #wildcard
-                    n=x[1].genCode(env,cg,getName)
+                if x[0].value.wildcard == True: #wildcard
+                    n = x[1].genCode(env,cg,getName)
                     cg.MRuleRet(n,getName)
                     if i != len(self.reg):
                         l1=getLabel()
                         cg.emitInst("{}:".format(l1))
                 elif x[0].value.value!=None: #constant
-                    param=cg.getParamValue2(getName)
-                    comp=cg.MRuleCompare(x[0].value.value,param,getName,getLabel)
+                    comp = cg.MRuleCompare(x[0].value.value, "%param", getName, getLabel)
                     l1,l2=getLabel(),getLabel()
                     cg.MRuleBr1(comp,l1,l2)
                     n=x[1].genCode(env,cg,getName)
                     cg.MRuleRet(n,getName)
                     cg.MRuleBr2(l2)
                 else: #x
-                    param=cg.getParamValue1(getName)
-                    x[0].genCode(x[1].scope,cg,param,getName)
-                    n=x[1].genCode(x[1].scope,cg,getName)
+                    scope = x[1].scope
+                    cg.emitInst("; value binding")
+                    cg.pushNewScope(getName, scope["__len__"])
+                    x[0].genCode(scope, cg, "%param", getName)
+                    n=x[1].genCode(scope, cg, getName)
                     cg.MRuleRet(n,getName)
+                    # cg.popScope(getName)
+
             elif isinstance((x[0].value),list):# compound type
                 param=cg.getParamValue2(getName)# getparam
                 FLabel=getLabel()

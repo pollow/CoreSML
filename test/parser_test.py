@@ -233,7 +233,7 @@ class ParserTest(unittest.TestCase):
         print("--------Code Generator Test Finished----------")
 
     def test_fun_xxx(self):
-        x = ''' val it = let val f : int -> int = fn x : int => addi { 1 = x, 2 = 10 } in print (intToStr (f 25)); 0 end '''
+        x = ''' val it = let val f : int -> int = fn 0 :int => 0 | x : int => addi { 1 = x, 2 = 10 } in print (intToStr (f 1)); 0 end '''
         x = parser.parse(x)
         env = typecheck(x)
         desent(0, x)

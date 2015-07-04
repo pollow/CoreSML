@@ -219,15 +219,18 @@ class CodeGenerator:
     def allocate(self, name, tyname, size):
         self.emitInst("{} = alloca {}, align {}".format(name, tyname, size))
 
-    def decFuncHead1(self):
+    def decFuncHead(self):
         self.insts_stack.append((self.insts, self.indent))
         self.insts = []
         self.indent = 0
         getName, getLabel = CodeGenerator.tempNameInc(0), CodeGenerator.tempLabelInc(0)
         self.emitInst("define i32 @f(i32* %p) {")
         self.indent += 1
+        self.emitInst("%param = getelementptr inbounds i32* %p, i32 1 ; point to param")
         self.emitInst("%scope = alloca i32*, align 4")
-        self.emitInst("store i32* %p, i32** %scope, align 4")
+        n1 = self.loadValue("%p", getName)
+        n1 = self.intToPtr(n1, getName)
+        self.emitInst("store i32* {}, i32** %scope, align 4".format(n1))
 
         self.emitInst("; Enter Function")
         return getName, getLabel
@@ -235,7 +238,7 @@ class CodeGenerator:
 
     def decFuncTail(self):
         # self.emitInst("call void %rtError(i8* getelementptr inbounds ([19 x i8]* @.str10, i32 0, i32 0))")
-        self.emitInst("ret i32 0")
+        # self.emitInst("ret i32 0")
         self.indent -= 1
         self.emitInst("}")
         self.write("\n".join(self.insts)+"\n")
@@ -247,10 +250,9 @@ class CodeGenerator:
         self.emitInst("ret i32 {}".format(n1))
 
     def getParamValue1(self,getName):
-        n1,n2=getName(),getName()
-        self.emitInst("{} = getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
-        self.emitInst("{} = bitcast i32** {} to i32*".format(n2,n1))
-        return n2
+        n1 = getName()
+        self.emitInst("{} = getelementptr inbounds i32* %p, i32 {} ; point to param".format(n1, 1))
+        return n1
 
 
     def getParamValue2(self,getName):
@@ -261,10 +263,11 @@ class CodeGenerator:
         return n3
 
 
-    def MRuleCompare(self,pat,param,getName,getLabel,FLabel=None,compound=None):
-        if compound==None:
-            n1=getName()
-            self.emitInst("{} = icmp eq i32 {}, {}".format(n1,pat,param))
+    def MRuleCompare(self, pat, param, getName, getLabel, FLabel=None, compound=None):
+        if compound == None:
+            tmp = self.loadValue(param, getName)
+            n1 = getName()
+            self.emitInst("{} = icmp eq i32 {}, {}".format(n1, pat, tmp))
             return n1
         else: # compound is a dict
             r=0
