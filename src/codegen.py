@@ -10,7 +10,10 @@ primitive = ['+', '-', '*', '/', 'div', '#']
 
 def funType(tycon):
     assert isinstance(tycon, tuple)
-    return "{} (i32*)*".format(IRTyName[tycon[1].name])
+    if isinstance(tycon[1], TyCon):
+        return "{} (i32*)*".format(IRTyName[tycon[1].name])
+    else: # resovled type information
+        return "{} (i32*)*".format(IRTyName[tycon[1]])
 
 class CodeGenerator:
     'IR Language Generator'
@@ -21,6 +24,7 @@ class CodeGenerator:
         self.insts = []
         self.insts_stack = []
         self.write(header)
+        self.getLambda = CodeGenerator.tempLambdaInc(0)
 
     def __del__(self):
 
@@ -68,6 +72,9 @@ class CodeGenerator:
 
         self.indent -= 1
 
+    def debug(self, name):
+        self.emitInst("call void @printHex(i32 {})".format(name))
+
     def rtnMain(self, n1):
         self.emitInst("ret i32 {}".format(n1))
         self.write(main.format("\n".join(self.insts)))
@@ -78,24 +85,26 @@ class CodeGenerator:
         self.insts.append("    " * self.indent + s)
 
 
-    def callFunc(self, fn, param, getName):
+    def callFunc(self, fnType, fnName, param, getName):
         # print("callFunc: ", fn, param)
         self.emitInst("; callFunc - Enter")
-        if fn.type[1] == 'unit':
-            self.emitInst("call {} @{} (i32* {})".format(IRTyName[fn.type[1]], fn.id, param))
+        fp = getName()
+        self.emitInst("{} = inttoptr i32 {} to {} (i32*)*".format(fp, fnName, IRTyName[fnType[1]]))
+        if fnType[1] == 'unit':
+            self.emitInst("call {} {} (i32* {})".format(IRTyName[fnType[1]], fp, param))
             self.emitInst("; callFunc - Exit")
         else:
             rtn, n1 = getName(), getName()
             # TODO bitcast
-            self.emitInst("{} = call {} @{} (i32* {})".format(rtn, IRTyName[fn.type[1]], fn.id, param))
+            self.emitInst("{} = call {} {} (i32* {})".format(rtn, IRTyName[fnType[1]], fp, param))
 
             self.allocate(n1, "i32", 4)
-            if fn.type[1] in ["record", "fn", "string"]:
+            if fnType[1] in ["record", "fn", "string"]:
                 # TODO datatype
-                n2 = self.ptrToInt(rtn, IRTyName[fn.type[1]], getName)
+                n2 = self.ptrToInt(rtn, IRTyName[fnType[1]], getName)
             else:
                 n2 = getName()
-                self.emitInst("{} = bitcast {} {} to i32".format(n2, IRTyName[fn.type[1]], rtn)) # tmp
+                self.emitInst("{} = bitcast {} {} to i32".format(n2, IRTyName[fnType[1]], rtn)) # tmp
             self.emitInst("store i32 {}, i32* {}, align 4".format(n2, n1))
             self.emitInst("; callFunc - Exit")
             return n1
@@ -123,10 +132,7 @@ class CodeGenerator:
         n1, n2, n3 = getName(), getName(), getName()
         self.emitInst("{} = load i32** %scope, align 4".format(n1))
         self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2, n1, int(offset/4)))
-        if func == None:
-            self.emitInst("{} = load i32* {}, align 4".format(n3, name))
-        else:
-            self.emitInst("{} = ptrtoint i32* {} to i32".format(n3, n1))
+        self.emitInst("{} = load i32* {}, align 4".format(n3, name))
         self.emitInst("store i32 {}, i32* {}, align 4".format(n3, n2))
         self.emitInst("; fillScope")
 
@@ -219,12 +225,12 @@ class CodeGenerator:
     def allocate(self, name, tyname, size):
         self.emitInst("{} = alloca {}, align {}".format(name, tyname, size))
 
-    def decFuncHead(self):
+    def decFuncHead(self, tycon):
         self.insts_stack.append((self.insts, self.indent))
         self.insts = []
         self.indent = 0
-        getName, getLabel = CodeGenerator.tempNameInc(0), CodeGenerator.tempLabelInc(0)
-        self.emitInst("define i32 @f(i32* %p) {")
+        getName, getLabel, funName = CodeGenerator.tempNameInc(0), CodeGenerator.tempLabelInc(0), self.getLambda()
+        self.emitInst("define i32 {}(i32* %p) {{".format(funName))
         self.indent += 1
         self.emitInst("%param = getelementptr inbounds i32* %p, i32 1 ; point to param")
         self.emitInst("%scope = alloca i32*, align 4")
@@ -233,16 +239,27 @@ class CodeGenerator:
         self.emitInst("store i32* {}, i32** %scope, align 4".format(n1))
 
         self.emitInst("; Enter Function")
-        return getName, getLabel
+        return getName, getLabel, funName
 
 
-    def decFuncTail(self):
+    def decFuncTail(self, getName, funName, tycon):
         # self.emitInst("call void %rtError(i8* getelementptr inbounds ([19 x i8]* @.str10, i32 0, i32 0))")
-        # self.emitInst("ret i32 0")
+        self.emitInst("ret i32 0")
         self.indent -= 1
         self.emitInst("}")
         self.write("\n".join(self.insts)+"\n")
         self.insts, self.indent = self.insts_stack.pop()
+
+        self.emitInst("; Function already defined")
+        n1 = getName()
+        self.emitInst("{} = bitcast i32** %scope to i32*".format(n1)) # convert to i32 * to load i32**env as i32
+        rtn, n2 = self.createRecord(8, getName)
+        self.fillRecord(n1, n2, 0, getName)
+        n3 = getName()
+        self.emitInst("{} = ptrtoint {} {} to i32".format(n3, funType(tycon), funName))
+        self.fillRecord(n3, n2, 4, getName, False)
+
+        return rtn
 
     def MRuleRet(self,n,getName):
         n1=getName()
@@ -275,25 +292,23 @@ class CodeGenerator:
             for i in range(len(pat)):
                 if pat[i].lab!=None and pat[i].value!=None: #wildcard
                     dic[pat[i].lab]=i
+            tmp = self.intToPtr(self.loadValue(param, getName), getName)
             for element in compound:
                 if element in dic:
-                    n1,n2,n3=getName(),getName(),getName()
-                    self.emitInst("{} = inttoptr i32 {} to i32*".format(n1,param))
-                    self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n2,n1,element-1))
-                    self.emitInst("{} = load i32* {}, align 4".format(n3,n2))
-                    x=pat[dic[element]].value.value
-                    if isinstance(x,Value):#simple type:const,x,wildcard
-                        if x.wildcard==True: #wildcard
+                    n1 = self.extractRecord(tmp, (element-1)*4, getName)
+                    x = pat[dic[element]].value.value
+                    if isinstance(x, Value):#simple type:const,x,wildcard
+                        if x.wildcard == True: #wildcard
                             pass
-                        elif x.value!=None: #const
-                            comp=self.MRuleCompare(x.value,n3,getName,getLabel)
-                            l1=getLabel()
-                            self.emitInst("br i1 {}, label %{}, label %{}".format(comp,l1,FLabel))
+                        elif x.value != None: #const
+                            comp = self.MRuleCompare(x.value, n1, getName, getLabel)
+                            l1 = getLabel()
+                            self.emitInst("br i1 {}, label %{}, label %{}".format(comp, l1, FLabel))
                             self.emitInst("{}:".format(l1))
                         else: #x
                             pass
                     else: #compound type
-                        self.MRuleCompare(x,n3,getName,FLabel,compound[element])
+                        self.MRuleCompare(x, n1, getName, FLabel, compound[element])
 
 
     def MRuleBr1(self,comp,l1,l2):
@@ -320,6 +335,14 @@ class CodeGenerator:
         def fun():
             c[0]+=1
             return "L{}".format(c[0])
+        return fun
+
+    @staticmethod
+    def tempLambdaInc(x):
+        c=[x]
+        def fun():
+            c[0]+=1
+            return "@Lambda{}".format(c[0])
         return fun
 
 

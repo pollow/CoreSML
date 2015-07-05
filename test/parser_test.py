@@ -245,8 +245,8 @@ class ParserTest(unittest.TestCase):
         x = ''' val it =
             let val f : { 1 : int, 2 : int }  -> int =
                 fn {1 = 5, 2 = 10} => 10
-                 | {1 = x : int, 2 = 20} => x
-            in print (intToStr (f {1 = 5, 2 = 10})); 0 end '''
+                 | {1 = x : int, 2 = 20} => addi {1 = 20, 2 = x}
+            in print (intToStr (f {1 = 15, 2 = 20})); 0 end '''
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)
