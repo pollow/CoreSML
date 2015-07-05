@@ -507,12 +507,7 @@ class valbind:
             insertScope(env, self.pat.value.id, self.pat.value)
         self.exp.calcType(env)
 
-        if self.rec:
-            self.pat.update()
-            self.pat.calcType(env)
-            return True
-
-        if self.recordPatBind(env, self.pat, self.exp.type):
+        if self.rec or self.recordPatBind(env, self.pat, self.exp.type):
             self.pat.update()
             self.pat.calcType(env)
             return True
