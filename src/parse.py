@@ -462,7 +462,7 @@ def p_valbind(p):
 def p_fvalbind(p):
     ''' fvalbind    : pat '=' FN match
     '''
-    p[0] = (p[1], p[3])
+    p[0] = valbind(p[1], Expression( "Fn", p[4] ))
 
 
 def p_typbind(p):

@@ -256,6 +256,21 @@ class ParserTest(unittest.TestCase):
         print("--------Code Generator Test Finished----------")
 
 
+    def test_fun_rec(self):
+        print("--------Code Generator Test----------")
+        x = ''' val it =
+            let val rec f : int -> int =
+                fn 0 => 1
+                 | x : int => muli {1 = x, 2 = f (subi {1 = x, 2 = 1})}
+            in print (intToStr (f 6)); 0 end '''
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
+
 if __name__ == '__main__':
     unittest.main()
 
