@@ -7,7 +7,11 @@ class Unit:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
 
 class RecordItem:
@@ -27,7 +31,11 @@ class RecordItem:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def calcType(self, env):
         self.type = self.value.calcType(env)
@@ -49,13 +57,15 @@ class TyCon:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def calcType(self, env):
         # TODO tyvars support
         if self.name in primative_tycon: # primative type
-            return self.name
-        elif self.name == 'unit': # unit
             return self.name
         elif self.name in ['record', 'fn'] : # record or fn
             return self.type
@@ -78,7 +88,8 @@ primative_tycon = {
     'int'       : int_type,
     'real'      : real_type,
     'string'    : string_type,
-    'char'      : char_type
+    'char'      : char_type,
+    'unit'      : unit_type,
 }
 
 def desent(level, x):
@@ -199,7 +210,11 @@ class VCon:
         self.dict.pop('self', None)
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def __repr__(self):
         return self.__class__.__name__
@@ -213,7 +228,11 @@ class Declaration :
         self.dict.pop('self', None)
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def __repr__(self):
         return self.__class__.__name__
@@ -247,7 +266,11 @@ class Value :
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def isConstant(self):
         return self.value is not None and \
@@ -316,7 +339,11 @@ class Pattern :
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def update(self):
         for x in self.dict:
@@ -388,7 +415,11 @@ class MRule:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
 
 class Match:
@@ -402,7 +433,11 @@ class Match:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
 
 class typbind:
@@ -417,7 +452,11 @@ class typbind:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def checkType(self, env):
         self.typBind(env)
@@ -443,7 +482,11 @@ class valbind:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def recordPatBind(self, env, pat, ty):
         v = pat.value
@@ -548,7 +591,11 @@ class datbind:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     def checkType(self,env):
         self.datBind(env)
@@ -583,7 +630,11 @@ class Expression:
         return self.__class__.__name__
 
     def __str__(self):
-        return self.dict.__str__()
+        tmp = self.dict.pop('scope', None)
+        s = self.dict.__str__()
+        if tmp:
+            self.dict['scope'] = tmp
+        return s
 
     @staticmethod
     def flattenBind(env, pat):
@@ -613,7 +664,6 @@ class Expression:
             x = applist[i]
             """ :type : Expression """
             x.calcType(env)
-            # print('Function call ', i, ' : ', rtn)
             if rtn[0] != x.type:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
@@ -784,7 +834,7 @@ class Expression:
                 # function should be the first argument
                 caller = r[0]
 
-                assert isinstance(caller.reg, Value)
+                print("Debug: ", caller)
                 assert len(r) == 2
 
                 fun     = cg.intToPtr(cg.loadValue(caller.genCode(env, cg, getName), getName), getName)
@@ -794,7 +844,12 @@ class Expression:
                     p = r[i]
                     param = p.genCode(env, cg, getName)
                     arg = cg.createParam(getName, callEnv, param)
-                    rtn = cg.callFunc(searchEnv(env, caller.reg.id).type, cg.loadValue(fp, getName), arg, getName)
+                    type = None
+                    if isinstance(caller.reg, Value):
+                        type = searchEnv(env, caller.reg.id).type
+                    elif caller.cls == "App":
+                        type = caller.type
+                    rtn = cg.callFunc(type, cg.loadValue(fp, getName), arg, getName)
 
                 return rtn
         elif cls == "Let":
@@ -860,7 +915,7 @@ class Expression:
 
             return rtnName
 
-    def genCodeFuncBody(self,cg,env,getName,getLabel,typ):
+    def genCodeFuncBody(self, cg, env, getName, getLabel, typ):
         for i in range(len(self.reg)): #self.reg : [(pattern,exp),...]
             x=(self.reg)[i]
             if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
@@ -872,10 +927,10 @@ class Expression:
                         cg.emitInst("{}:".format(l1))
                 elif x[0].value.value!=None: #constant
                     comp = cg.MRuleCompare(x[0].value.value, "%param", getName, getLabel)
-                    l1,l2=getLabel(),getLabel()
-                    cg.MRuleBr1(comp,l1,l2)
-                    n=x[1].genCode(env,cg,getName)
-                    cg.MRuleRet(n,getName)
+                    l1, l2=getLabel(), getLabel()
+                    cg.MRuleBr1(comp, l1, l2)
+                    n=x[1].genCode(env, cg, getName)
+                    cg.MRuleRet(n, typ[1], getName)
                     cg.MRuleBr2(l2)
                 else: #x
                     scope = x[1].scope
@@ -883,19 +938,16 @@ class Expression:
                     cg.pushNewScope(getName, scope["__len__"])
                     x[0].genCode(scope, cg, "%param", getName)
                     n=x[1].genCode(scope, cg, getName)
-                    cg.MRuleRet(n,getName)
-                    # cg.popScope(getName)
+                    cg.MRuleRet(n, typ[1], getName)
 
             elif isinstance((x[0].value),list):# compound type
-                # param=cg.getParamValue2(getName)# getparam
                 FLabel=getLabel()
                 scope = x[1].scope
                 cg.emitInst("; compound binding")
                 cg.MRuleCompare(x[0].value, "%param", getName, getLabel, FLabel, typ[0]) # compare pattern
                 cg.pushNewScope(getName, scope["__len__"])
                 x[0].genCode(x[1].scope, cg, "%param", getName, None, 1)# fill scope
-                n=x[1].genCode(x[1].scope,cg,getName)# calc exp
-                cg.MRuleRet(n,getName)
+                n=x[1].genCode(x[1].scope, cg, getName)# calc exp
+                cg.MRuleRet(n, typ[1], getName)
                 cg.emitInst("{}:".format(FLabel))
-
 

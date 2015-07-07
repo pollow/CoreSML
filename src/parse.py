@@ -278,7 +278,7 @@ def p_atexp_r(p):
                 | '{' exprow '}' '''
 
     if len(p) == 3:
-        p[0] = Expression( "Record", [RecordItem(None, None)] )
+        p[0] = Expression( "Constant", Value(tycon=unit_type) )
     else:
         p[0] = Expression( "Record", p[2] )
 
@@ -399,7 +399,6 @@ def p_app_exp1(p):
 # (*---------------------------------------------------------------*)
 # (*                        declaration                            *)
 # (*---------------------------------------------------------------*)
-
 
 def p_match(p):
     ''' match   : mrule

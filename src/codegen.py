@@ -13,7 +13,11 @@ def funType(tycon):
     if isinstance(tycon[1], TyCon):
         return "{} (i32*)*".format(IRTyName[tycon[1].name])
     else: # resovled type information
-        return "{} (i32*)*".format(IRTyName[tycon[1]])
+        return "{} (i32*)*".format(IRTyName.get(tycon[1], "i32 *"))
+
+def tyconName(tycon):
+    return IRTyName.get(tycon, "i32*")
+
 
 class CodeGenerator:
     'IR Language Generator'
@@ -56,6 +60,15 @@ class CodeGenerator:
         else:
             return self.getGlobalStrName(s)
 
+    def convertType(self, name, tycon, getName):
+        if tycon in ['int', 'real', 'char', 'unit']:
+            n1 = getName()
+            self.emitInst("{} = bitcast i32 {} to {}".format(n1, name, IRTyName[tycon])) # tmp
+        else:
+            n1 = self.intToPtr(name, getName)
+
+        return n1
+
     def enterMain(self, env, getName):
         # TODO init build in function
         zero = getName()
@@ -89,22 +102,24 @@ class CodeGenerator:
         # print("callFunc: ", fn, param)
         self.emitInst("; callFunc - Enter")
         fp = getName()
-        self.emitInst("{} = inttoptr i32 {} to {} (i32*)*".format(fp, fnName, IRTyName[fnType[1]]))
+        self.emitInst("{} = inttoptr i32 {} to {}".format(fp, fnName, funType(fnType)))
         if fnType[1] == 'unit':
-            self.emitInst("call {} {} (i32* {})".format(IRTyName[fnType[1]], fp, param))
+            self.emitInst("call {} {} (i32* {})".format(funType(fnType), fp, param))
             self.emitInst("; callFunc - Exit")
         else:
             rtn, n1 = getName(), getName()
             # TODO bitcast
-            self.emitInst("{} = call {} {} (i32* {})".format(rtn, IRTyName[fnType[1]], fp, param))
+            self.emitInst("{} = call {} {} (i32* {})".format(rtn, funType(fnType), fp, param))
 
             self.allocate(n1, "i32", 4)
-            if fnType[1] in ["record", "fn", "string"]:
-                # TODO datatype
-                n2 = self.ptrToInt(rtn, IRTyName[fnType[1]], getName)
-            else:
+            # n2 = self.convertType(rtn, fnType[1], getName)
+
+            if fnType[1] in ['int', 'real', 'char', 'unit']:
                 n2 = getName()
-                self.emitInst("{} = bitcast {} {} to i32".format(n2, IRTyName[fnType[1]], rtn)) # tmp
+                self.emitInst("{} = bitcast {} {} to i32".format(n2, tyconName(fnType[1]), rtn)) # tmp
+            else:
+                # TODO datatype
+                n2 = self.ptrToInt(rtn, tyconName(fnType[1]), getName)
             self.emitInst("store i32 {}, i32* {}, align 4".format(n2, n1))
             self.emitInst("; callFunc - Exit")
             return n1
@@ -230,7 +245,7 @@ class CodeGenerator:
         self.insts = []
         self.indent = 0
         getName, getLabel, funName = CodeGenerator.tempNameInc(0), CodeGenerator.tempLabelInc(0), self.getLambda()
-        self.emitInst("define i32 {}(i32* %p) {{".format(funName))
+        self.emitInst("define {} {}(i32* %p) {{".format(tyconName(tycon[1]), funName))
         self.indent += 1
         self.emitInst("%param = getelementptr inbounds i32* %p, i32 1 ; point to param")
         self.emitInst("%scope = alloca i32*, align 4")
@@ -244,7 +259,12 @@ class CodeGenerator:
 
     def decFuncTail(self, getName, funName, tycon):
         # self.emitInst("call void %rtError(i8* getelementptr inbounds ([19 x i8]* @.str10, i32 0, i32 0))")
-        self.emitInst("ret i32 0")
+        if tycon[1] in ['int', 'real', 'char', 'unit']:
+            self.emitInst("ret i32 0")
+        elif tycon[1] == "string":
+            self.emitInst("ret i8* null")
+        else:
+            self.emitInst("ret i32* null")
         self.indent -= 1
         self.emitInst("}")
         self.write("\n".join(self.insts)+"\n")
@@ -261,23 +281,12 @@ class CodeGenerator:
 
         return rtn
 
-    def MRuleRet(self,n,getName):
+    def MRuleRet(self, n, tycon, getName):
+        # always be i32
         n1=getName()
-        self.emitInst("{} = load i32* {} ,align 4".format(n1,n))
-        self.emitInst("ret i32 {}".format(n1))
-
-    def getParamValue1(self,getName):
-        n1 = getName()
-        self.emitInst("{} = getelementptr inbounds i32* %p, i32 {} ; point to param".format(n1, 1))
-        return n1
-
-
-    def getParamValue2(self,getName):
-        n1,n2,n3=getName(),getName(),getName()
-        self.emitInst("{} = getelementptr inbounds i32** %scope, i32 {}".format(n1,1))
-        self.emitInst("{} = load i32** {}, align 4".format(n2,n1))
-        self.emitInst("{} = ptrtoint i32* {} to i32".format(n3,n2))
-        return n3
+        self.emitInst("{} = load i32* {} ,align 4".format(n1, n))
+        n1 = self.convertType(n1, tycon, getName)
+        self.emitInst("ret {} {}".format(tyconName(tycon), n1))
 
 
     def MRuleCompare(self, pat, param, getName, getLabel, FLabel=None, compound=None):

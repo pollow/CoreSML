@@ -271,6 +271,24 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
+    def test_fun_ana(self):
+        print("--------Code Generator Test----------")
+        x = ''' val it =
+            let val wrapper : int -> (int -> int) =
+            fn 0 => let
+                val rec f : int -> int =
+                    fn 0 => 1
+                     | x : int => muli {1 = x, 2 = f (subi {1 = x, 2 = 1})}
+                in f end
+            in print (intToStr ((wrapper 0) 6)); 0 end '''
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
+
 if __name__ == '__main__':
     unittest.main()
 
