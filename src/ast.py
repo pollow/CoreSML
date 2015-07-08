@@ -716,16 +716,19 @@ class Expression:
 
             elif isinstance(x[0].value,list): #[RecordItem,...]
                 # print("calcFun::list") #####
-                t={"__wildCard__":False}
-                for element in x[0].value:
-                    if element.value==None and element.lab==None: #...
-                        t['__wildCard__']=True
-                    else:
-                        tmp=element.value.calcType(env)
-                        t[element.lab]=tmp
+                #t['__wildCard__']=False
+                # for element in x[0].value:
+                #     if element.value==None and element.lab==None: #...
+                #         t['__wildCard__']=True
+                #     else:
+                #         tmp=element.value.calcType(env)
+                #         t[element.lab]=tmp
+                x[0].calcType(env)
+                t = x[0].type
+                t['__wildCard__'] = False
                 if patType == None:
-                    patType=t
-                elif not isinstance(patType,dict):
+                    patType = t
+                elif not isinstance(patType, dict):
                     raise SMLSyntaxError("Parameters doesn't match!")
                 else:
                     if patType['__wildCard__']==False:
@@ -946,7 +949,7 @@ class Expression:
                 FLabel=getLabel()
                 scope = x[1].scope
                 cg.emitInst("; compound binding")
-                cg.MRuleCompare(x[0].value, "%param", getName, getLabel, FLabel, typ[0]) # compare pattern
+                cg.MRuleCompare(x[0].value, "%param", getName, getLabel, FLabel, typ[0], x[0].record) # compare pattern
                 cg.pushNewScope(getName, scope["__len__"])
                 x[0].genCode(x[1].scope, cg, "%param", getName, None, 1)# fill scope
                 n=x[1].genCode(x[1].scope, cg, getName)# calc exp

@@ -289,6 +289,22 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
+    def test_fun_xyz(self):
+        print("--------Code Generator Test----------")
+        x = ''' val it =
+            let val f : { x : int, y : int, z : int }  -> int =
+                fn {x = 5, y = 10, z = 5} => 10
+                 | {x = x : int, y = 20, z = z : int} => addi {1 = z, 2 = x}
+                 | {x = x : int, ...} => muli {1 = x, 2 = 2}
+            in print (intToStr (f {x = 19, y = 20, z = 100})); 0 end '''
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
+
 if __name__ == '__main__':
     unittest.main()
 

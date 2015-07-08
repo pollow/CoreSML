@@ -292,35 +292,33 @@ class CodeGenerator:
         self.emitInst("ret {} {}".format(tyconName(tycon), n1))
 
 
-    def MRuleCompare(self, pat, param, getName, getLabel, FLabel=None, compound=None):
+    def MRuleCompare(self, pat, param, getName, getLabel, FLabel=None, compound=None, offset = None):
         if compound == None:
             tmp = self.loadValue(param, getName)
             n1 = getName()
             self.emitInst("{} = icmp eq i32 {}, {}".format(n1, pat, tmp))
             return n1
         else: # compound is a dict
-            r=0
-            dic={}
-            for i in range(len(pat)):
-                if pat[i].lab!=None and pat[i].value!=None: #wildcard
-                    dic[pat[i].lab]=i
+            dic = {}
+            for x in pat:
+                if x.lab != None and x.value != None: # wildcard
+                    dic[x.lab] = x.value.value
             tmp = self.intToPtr(self.loadValue(param, getName), getName)
-            for element in compound:
-                if element in dic:
-                    n1 = self.extractRecord(tmp, (element-1)*4, getName)
-                    x = pat[dic[element]].value.value
-                    if isinstance(x, Value):#simple type:const,x,wildcard
-                        if x.wildcard == True: #wildcard
-                            pass
-                        elif x.value != None: #const
-                            comp = self.MRuleCompare(x.value, n1, getName, getLabel)
-                            l1 = getLabel()
-                            self.emitInst("br i1 {}, label %{}, label %{}".format(comp, l1, FLabel))
-                            self.emitInst("{}:".format(l1))
-                        else: #x
-                            pass
-                    else: #compound type
-                        self.MRuleCompare(x, n1, getName, FLabel, compound[element])
+            for lab in sorted(dic.keys()):
+                x = dic[lab]
+                n1 = self.extractRecord(tmp, offset[lab], getName)
+                if isinstance(x, Value):#simple type:const,x,wildcard
+                    if x.wildcard == True: #wildcard
+                        pass
+                    elif x.value != None: #const
+                        comp = self.MRuleCompare(x.value, n1, getName, getLabel)
+                        l1 = getLabel()
+                        self.emitInst("br i1 {}, label %{}, label %{}".format(comp, l1, FLabel))
+                        self.emitInst("{}:".format(l1))
+                    else: #x
+                        pass
+                else: #compound type
+                    self.MRuleCompare(x, n1, getName, FLabel, compound[element])
 
 
     def MRuleBr1(self,comp,l1,l2):
