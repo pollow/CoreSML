@@ -1,8 +1,8 @@
-__author__  = 'Jossef'
-__url__     = 'https://gist.github.com/Jossef/0ee20314577925b4027f'
+__author__ = 'Jossef'
+__url__ = 'https://gist.github.com/Jossef/0ee20314577925b4027f'
+
 
 def color(text, **user_styles):
-
     styles = {
         # styles
         'reset': '\033[0m',
@@ -60,4 +60,3 @@ def warning(text):
 
 def success(text):
     return color(text, fg_green=True)
-
