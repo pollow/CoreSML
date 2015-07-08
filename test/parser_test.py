@@ -296,7 +296,7 @@ class ParserTest(unittest.TestCase):
                 fn {x = 5, y = 10, z = 5} => 10
                  | {x = x : int, y = 20, z = z : int} => addi {1 = z, 2 = x}
                  | {x = x : int, ...} => muli {1 = x, 2 = 2}
-            in print (intToStr (f {x = 19, y = 20, z = 100})); 0 end '''
+            in print (intToStr (f {x = 20, y = 20, z = 101})); 0 end '''
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)

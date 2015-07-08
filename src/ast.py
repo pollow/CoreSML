@@ -25,7 +25,7 @@ class RecordItem:
 
 
     def isWild(self):
-        return (self.lab == None) and (self.value == None)
+        return (self.lab is None) and (self.value is None)
 
     def __repr__(self):
         return self.__class__.__name__
@@ -125,7 +125,7 @@ IRTyName = {"int" : "i32", "real": "float", "char": "i8",
             "string": "i8*", "unit": "void", "record": "i32*", "fn": "i32*"}
 
 def calcLevels(env, name):
-    if env == None:
+    if env is None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
@@ -146,7 +146,7 @@ def insertScope(env, name, value):
     :param value: Value
     :return:
     """
-    if name==None:
+    if name is None:
         return
     if name in env:
         raise SMLSyntaxError("Identifier '{}' rebound.".format(name))
@@ -175,14 +175,14 @@ def searchTyCon(tyc,name,env):
     return False
 
 def searchEnvO(env, name, typ=None):
-    if typ!=None:
-        if env==None:
+    if typ is not None:
+        if env is None:
             return None
         for ele in env.keys():
             if isinstance(env[ele], TyCon) and searchTyCon(env[ele],name,env):
                 return ele
         return searchEnvO(env["__parent__"], name , 1)
-    if env == None:
+    if env is None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
         return None
     elif name in env:
@@ -355,10 +355,13 @@ class Pattern :
             self.size = TyCon.calcSize(self.type)
         elif isinstance(self.value, list):
             # record decompose binding
-            t = {}
+            t = {'__wildCard__': False}
             v = {"__len__": 0}
             for x in self.value:
-                t[x.lab] = x.calcType(env)
+                if x.lab is None and x.value is None: #wildcard
+                    t['__wildCard__'] = True
+                else:
+                    t[x.lab] = x.calcType(env)
 
             for x in sorted(t.keys()):
                 v[x] = v["__len__"]
@@ -370,7 +373,7 @@ class Pattern :
             # print("Record Pattern: ", self.record)
         elif isinstance(self.value,tuple):
             tmp=searchEnvO(env,self.value,1)
-            if tmp==False:
+            if not tmp:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
                 self.type=tmp
@@ -381,7 +384,7 @@ class Pattern :
     def genCode(self, env, cg, src, getName, recordOffset = None,func=None):
         # src is i32* pointer to real value
         if isinstance(self.value, Value):
-            if self.value.id!=None:
+            if self.value.id is not None:
                 cg.fillScope(src, getOffset(env, self.value.id), getName,func)
                 cg.emitInst("; Pattern - Value")
         elif isinstance(self.value, list):
@@ -391,8 +394,8 @@ class Pattern :
             src = cg.intToPtr(cg.loadValue(src, getName), getName)
             for i in range(len(self.value)):
                 x=(self.value)[i]
-                if x.value!=None and x.lab!=None:
-                    if recordOffset != None:
+                if x.value is not None and x.lab is not None:
+                    if recordOffset is not None:
                         tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
                         x.value.genCode(env, cg, tmp, getName, recordOffset)
                     else:
@@ -643,12 +646,11 @@ class Expression:
             # env[pat.value.id] = pat.value
         elif isinstance(pat.value, list):
             for x in pat.value:
-                if x.value!=None:
+                if x.value is not None:
                     Expression.flattenBind(env, x.value)
         elif isinstance(pat.value,tuple):
             for x in (pat.value)[1].value:
                 Expression.flattenBind(env, x.value)
-
 
 
     def calcAppList(self, applist, env):
@@ -684,22 +686,22 @@ class Expression:
             """ :type:(Pattern, Expression)"""
             if isinstance(x[0].value,Value):# 1.single value 2.constant 3.wildcard 4.datatype without param
                 # print("calcFun::value") ######
-                if x[0].value.wildcard==True: # wildcard
-                    if patType!=None:
+                if x[0].value.wildcard: # wildcard
+                    if patType is not None:
                         x[0].type=patType
                         x[0].update()
                 else :
                     param = x[0].calcType(env)
                     if isinstance(param,str): # constant ; single value with ty mentioned
-                        if patType != None and patType !=param:
+                        if patType is not None and patType !=param:
                             raise SMLSyntaxError("Parameters doesn't match!")
                         else:
                             patType=param
-                    elif param==None: # datatype without param; single value without ty mentioned
+                    elif param is None: # datatype without param; single value without ty mentioned
                         tmp=searchEnvO(env,x[0].value,1)
-                        if tmp==False: # cannot find datatype in env
+                        if not tmp: # cannot find datatype in env
                             raise SMLSyntaxError("Parameters doesn't match!")
-                        if patType != None and patType != tmp:
+                        if patType is not None and patType != tmp:
                             raise SMLSyntaxError("Parameters doesn't match!")
                         else:
                             patType=tmp;
@@ -707,35 +709,26 @@ class Expression:
             elif isinstance(x[0].value,tuple): #datatype with param
                 # print("calcFun:: tuple")   #####
                 tmp=searchEnvO(env,x[0].value,1)
-                if tmp==False:
+                if not tmp:
                     raise SMLSyntaxError("Parameters doesn't match!")
-                elif patType!= None and patType != tmp:
+                elif patType is not None and patType != tmp:
                     raise SMLSyntaxError("Parameters doesn't match!")
                 else:
                     patType=tmp
 
             elif isinstance(x[0].value,list): #[RecordItem,...]
-                # print("calcFun::list") #####
-                #t['__wildCard__']=False
-                # for element in x[0].value:
-                #     if element.value==None and element.lab==None: #...
-                #         t['__wildCard__']=True
-                #     else:
-                #         tmp=element.value.calcType(env)
-                #         t[element.lab]=tmp
                 x[0].calcType(env)
                 t = x[0].type
-                t['__wildCard__'] = False
-                if patType == None:
+                if patType is None:
                     patType = t
                 elif not isinstance(patType, dict):
                     raise SMLSyntaxError("Parameters doesn't match!")
                 else:
-                    if patType['__wildCard__']==False:
+                    if not patType['__wildCard__']:
                         if not ((patType.keys() | t.keys())==patType.keys()):
                             raise SMLSyntaxError("Parameters doesn't match!")
 
-                    if t['__wildCard__']==False:
+                    if not t['__wildCard__']:
                         if not ((patType.keys() | t.keys())==t.keys()):
                             raise SMLSyntaxError("Parameters doesn't match!")
                         
@@ -745,10 +738,10 @@ class Expression:
                         elif ele != "__wildCard__" and t[ele]!=patType[ele]:
                             raise SMLSyntaxError("Parameters doesn't match!")
 
-                    if t['__wildCard__']==False:
+                    if not t['__wildCard__']:
                         patType=t
 
-                    elif patType['__wildCard__']==True:
+                    elif patType['__wildCard__']:
                         patType=dict(patType,**t)
 
 
@@ -758,7 +751,7 @@ class Expression:
             # print("before exp.flattern")
             Expression.flattenBind(scope, x[0])
             exp = x[1].calcType(scope)
-            if expType != None and expType != exp:
+            if expType is not None and expType != exp:
                 raise SMLSyntaxError("Parameters doesn't match!")
             else:
                 expType=exp
@@ -923,14 +916,14 @@ class Expression:
             x=(self.reg)[i]
             if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
                 scope = x[1].scope
-                if x[0].value.wildcard == True: #wildcard
+                if x[0].value.wildcard: #wildcard
                     cg.pushNewScope(getName, scope["__len__"])
                     n = x[1].genCode(env,cg,getName)
                     cg.MRuleRet(n,getName)
                     if i != len(self.reg):
                         l1=getLabel()
                         cg.emitInst("{}:".format(l1))
-                elif x[0].value.value!=None: #constant
+                elif x[0].value.value is not None: #constant
                     comp = cg.MRuleCompare(x[0].value.value, "%param", getName, getLabel)
                     l1, l2=getLabel(), getLabel()
                     cg.MRuleBr1(comp, l1, l2)
