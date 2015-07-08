@@ -101,6 +101,7 @@ class CodeGenerator:
     def callFunc(self, fnType, fnName, param, getName):
         # print("callFunc: ", fn, param)
         self.emitInst("; callFunc - Enter")
+        self.debug(fnName)
         fp = getName()
         self.emitInst("{} = inttoptr i32 {} to {}".format(fp, fnName, funType(fnType)))
         if fnType[1] == 'unit':
@@ -161,6 +162,7 @@ class CodeGenerator:
         self.emitInst("store i32 {}, i32* {}, align 4".format(n4, n3))
         self.emitInst("{} = getelementptr inbounds i32* {}, i32 {}".format(n5, n2, 1))
         self.emitInst("{} = load i32* {}, align 4".format(n6, param))
+        self.debug(n6)
         self.emitInst("store i32 {}, i32* {}, align 4".format(n6, n5))
 
         self.emitInst("; createParam")
@@ -277,6 +279,7 @@ class CodeGenerator:
         self.fillRecord(n1, n2, 0, getName)
         n3 = getName()
         self.emitInst("{} = ptrtoint {} {} to i32".format(n3, funType(tycon), funName))
+        self.debug(n3)
         self.fillRecord(n3, n2, 4, getName, False)
 
         return rtn

@@ -826,7 +826,7 @@ class Expression:
             if isinstance(r, Value):
                 # print("R: ", r)
                 n = cg.extractVar(getOffset(env, r.id), calcLevels(env, r.id), getName)
-                cg.emitInst("; Expression -- App ")
+                cg.emitInst("; Expression -- App {}".format(r.id))
                 return n
 
             else:
