@@ -295,8 +295,8 @@ class ParserTest(unittest.TestCase):
             let val f : { x : int, y : int, z : int }  -> int =
                 fn {x = 5, y = 10, z = 5} => 10
                  | {x = x : int, y = 20, z = z : int} => addi {1 = z, 2 = x}
-            in print (intToStr (f {x = 20, y = 20, z = 101})); 0 end '''
-        # | {x = x : int, ...} => muli {1 = x, 2 = 2}
+                 | {x = x : int, ...} => muli {1 = x, 2 = 2}
+            in print (intToStr (f {x = 20, y = 21, z = 101})); 0 end '''
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)

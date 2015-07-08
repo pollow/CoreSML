@@ -362,7 +362,9 @@ class Pattern:
                 else:
                     t[x.lab] = x.calcType(env)
 
-            for x in sorted(t.keys()):
+            tmp = sorted(t.keys())
+            tmp.remove('__wildCard__')
+            for x in tmp:
                 v[x] = v["__len__"]
                 v["__len__"] += 4
                 # v[x] = x.value # a issue here, nested pattern binding
