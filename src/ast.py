@@ -853,7 +853,7 @@ class Expression:
 
                 return rtn
         elif cls == "Let":
-            # print("Let: ", self)
+            cg.emitInst("; Expression -- Let Start")
             scope = self.letScope
             cg.pushNewScope(getName, scope["__len__"])
             decs, exp = r
@@ -868,7 +868,7 @@ class Expression:
                 rtnName = exp.genCode(scope, cg, getName)
 
             cg.popScope(getName)
-            cg.emitInst("; Expression -- Let ")
+            cg.emitInst("; Expression -- Let End")
 
             return rtnName
         elif cls == "EXPS":
@@ -919,7 +919,9 @@ class Expression:
         for i in range(len(self.reg)): #self.reg : [(pattern,exp),...]
             x=(self.reg)[i]
             if isinstance((x[0].value),Value) and isinstance(x[0].type,str): #constant wildcard x
+                scope = x[1].scope
                 if x[0].value.wildcard == True: #wildcard
+                    cg.pushNewScope(getName, scope["__len__"])
                     n = x[1].genCode(env,cg,getName)
                     cg.MRuleRet(n,getName)
                     if i != len(self.reg):
@@ -929,11 +931,11 @@ class Expression:
                     comp = cg.MRuleCompare(x[0].value.value, "%param", getName, getLabel)
                     l1, l2=getLabel(), getLabel()
                     cg.MRuleBr1(comp, l1, l2)
+                    cg.pushNewScope(getName, scope["__len__"])
                     n=x[1].genCode(env, cg, getName)
                     cg.MRuleRet(n, typ[1], getName)
                     cg.MRuleBr2(l2)
                 else: #x
-                    scope = x[1].scope
                     cg.emitInst("; value binding")
                     cg.pushNewScope(getName, scope["__len__"])
                     x[0].genCode(scope, cg, "%param", getName)
