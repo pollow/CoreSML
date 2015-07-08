@@ -167,9 +167,6 @@ class ParserTest(unittest.TestCase):
     def test_gen_hello(self):
         print("--------Code Generator Test----------")
 
-        # x = 'val it : int = let val f : int -> int = fn 0=>7 | 7=>14 | 14=>21 | x:int =>addi {1=x,2=1}  in print (intToStr (f(f (f (f 0)))));0 end'
-        # x = 'val it : int = let val f : int -> int = fn 0=>7  | _=>8 | x:int =>addi {1=x,2=1} in print (intToStr (f 17));0 end'
-
         x = 'val it : int = \
         let val f : {1:int ,2:int} -> int = \
         fn {1=5 , 2=10} => 15 | \
@@ -246,6 +243,4 @@ class ParserTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittes
-main()
-
+    unittest.main()

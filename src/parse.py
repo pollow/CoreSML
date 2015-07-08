@@ -19,17 +19,17 @@ def p_error(p):
         print(colors.error("Syntax error near '%s' at line %d" % (p.value, p.lineno)))
     else:
         print(colors.error("Syntax error at EOF"))
-    if (error_handle == 1):
+    if error_handle == 1:
         print("Trying to discard the token '%s'" % p.value)
         yacc.errok()
-    elif (error_handle == 2):
+    elif error_handle == 2:
         print("Trying to discard the whole sentence which includes '%s'" % p.value)
         while 1:
             tok = yacc.token()  # Get the next token
             if not tok or tok.type == ';':
                 break
         yacc.restart()
-    elif (error_handle == 3):
+    elif error_handle == 3:
         print(colors.error("It won't be fixed in p_error"))
         pass
     else:
@@ -38,11 +38,11 @@ def p_error(p):
 
 
 def p_program(p):
-    '''program  : program ';' exp 
+    """program  : program ';' exp
                 | program ';' dec
                 | exp
                 | dec
-    '''
+    """
     if debug: print('     PROGRAM')
 
     if len(p) == 2:
@@ -52,13 +52,14 @@ def p_program(p):
 
 
 def p_cons_int(p):
-    'cons : INT_VAL'
+    # noinspection PySingleQuotedDocstring
+    """cons : INT_VAL"""
     if debug: print("int : ", p[1])
     p[0] = Value(value=p[1], tycon=int_type)
 
 
 def p_cons_real(p):
-    'cons : REAL_VAL'
+    """cons : REAL_VAL"""
     if debug: print("real : ", p[1])
     p[0] = Value(value=ctypes.c_float(p[1]).value, tycon=real_type)
 
@@ -71,14 +72,14 @@ def p_cons_str(p):
 
 def p_cons_char(p):
     'cons : CHAR_VAL'
-    if debug: print("char : ", p[1])
+    if debug: print('char : ', p[1])
     p[0] = Value(value=p[1], tycon=char_type)
 
 
 def p_vid(p):
-    ''' vid : symbol
+    """ vid : symbol
             | ALPHANUMERIC
-    '''
+    """
     if debug: print(" VID : ", p[1])
     p[0] = p[1]
 
@@ -308,7 +309,7 @@ def p_atexp_error1(p):
     ''' atexp   : LET decs error IN exp END
                 | LET decs error IN exps END
     '''
-    if (error_handle == 3):
+    if error_handle == 3:
         print("p_atexp_error1!")
         p[0] = Expression("Let", (p[2], p[4]))
 
@@ -317,7 +318,7 @@ def p_atexp_error2(p):
     ''' atexp   : LET decs IN error exp END
                 | LET decs IN error exps END
     '''
-    if (error_handle == 3):
+    if error_handle == 3:
         print("p_atexp_error2!")
         p[0] = Expression("Let", (p[2], p[5]))
 
@@ -327,7 +328,7 @@ def p_atexp_error3(p):
                 | LET error decs IN  exps END
 		
     '''
-    if (error_handle == 3):
+    if error_handle == 3:
         print("p_atexp_error2!")
         p[0] = Expression("Let", (p[3], p[5]))
 

@@ -129,7 +129,6 @@ IRTyName = {"int": "i32", "real": "float", "char": "i8",
 def calcLevels(env, name):
     if env is None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
-        return None
     elif name in env:
         # print("Search Env: ", env[name])
         return 0
@@ -166,10 +165,10 @@ def searchTyCon(tyc, name, env):
         if isinstance(name, tuple):  # datatype with param
             if ele[0].id == name[0]:
                 if len(name[1].value) == 1 and isinstance(ele[1].type, str):
-                    return ele[1].type == (name[1].value)[0].value.calcType(env)
+                    return ele[1].type == name[1].value[0].value.calcType(env)
                 else:
                     for index in range(len(name[1].value)):
-                        if (ele[1].type)[index] == (name[1].value)[index].value.calcType(env):
+                        if ele[1].type[index] == name[1].value[index].value.calcType(env):
                             pass
                         else:
                             return False
@@ -187,7 +186,6 @@ def searchEnvO(env, name, typ=None):
         return searchEnvO(env["__parent__"], name, 1)
     if env is None:
         raise SMLSyntaxError("Syntax Error: identifier '{}' unbound.".format(name))
-        return None
     elif name in env:
         # print("Search Env: ", env[name])
         return env[name]
@@ -310,7 +308,6 @@ class Value:
             # get a way to check if it is a datatype
             # return name now, should return the whole datatype as tuple ('datatype', dict[dict[string, string]]
             raise SMLSyntaxError("Unexpected type check in FlattenType: {}".format(tycon))
-            return name
 
     def calcType(self, env):
         """
@@ -395,7 +392,7 @@ class Pattern:
             cg.indent += 1
             src = cg.intToPtr(cg.loadValue(src, getName), getName)
             for i in range(len(self.value)):
-                x = (self.value)[i]
+                x = self.value[i]
                 if x.value is not None and x.lab is not None:
                     if recordOffset is not None:
                         tmp = cg.extractRecord(src, recordOffset[x.lab], getName)
@@ -534,13 +531,12 @@ class valbind:
                             '__wildCard__'] == False or '__wildCard__' in key2 and
                             expType['__wildCard__'] == False):
                 return False
-            elif not '__wildCard__' in key1 & key2 and '__wildCard__' in key1 and expType[
-                '__wildCard__'] == True and key2 > (key1 - '__wildCard__'):
+            elif not '__wildCard__' in key1 & key2 and '__wildCard__' in key1 and expType[ '__wildCard__'] and key2 > (key1 - '__wildCard__'):
                 for key in key1 - '__wildCard__':
                     if not valbind.checkTypeExpPat(expType[key], patType[key]):
                         return False
                 return True
-            elif '__wildCard__' in key1 & key2 and expType['__wildCard__'] == True and patType['__wildCard__'] == True:
+            elif '__wildCard__' in key1 & key2 and expType['__wildCard__'] and patType['__wildCard__']:
                 for key in (key1 & key2) - '__wildCard__':
                     if not valbind.checkTypeExpPat(expType[key], patType[key]):
                         return False
@@ -655,7 +651,7 @@ class Expression:
                 if x.value is not None:
                     Expression.flattenBind(env, x.value)
         elif isinstance(pat.value, tuple):
-            for x in (pat.value)[1].value:
+            for x in pat.value[1].value:
                 Expression.flattenBind(env, x.value)
 
     @staticmethod
@@ -762,7 +758,7 @@ class Expression:
                 expType = exp
         if '__wildCard__' in patType:
             del (patType['__wildCard__'])
-        return (patType, expType)
+        return patType, expType
 
     def calcType(self, env):
         cls = self.cls
@@ -841,6 +837,7 @@ class Expression:
                 fun = cg.intToPtr(cg.loadValue(caller.genCode(env, cg, getName), getName), getName)
                 callEnv = cg.extractRecord(fun, 0, getName)
                 fp = cg.extractRecord(fun, 4, getName)
+                rtn = None
                 for i in range(1, len(r)):
                     p = r[i]
                     param = p.genCode(env, cg, getName)
@@ -862,6 +859,7 @@ class Expression:
                 # create a new scope
                 x.genCode(scope, cg, getName)
 
+            rtnName = None
             if isinstance(exp, list):
                 for x in exp:
                     rtnName = x.genCode(scope, cg, getName)
@@ -873,6 +871,7 @@ class Expression:
 
             return rtnName
         elif cls == "EXPS":
+            rtnName = None
             for x in r:
                 rtnName = x.genCode(env, cg, getName)
             return rtnName
@@ -918,8 +917,8 @@ class Expression:
 
     def genCodeFuncBody(self, cg, env, getName, getLabel, typ):
         for i in range(len(self.reg)):  # self.reg : [(pattern,exp),...]
-            x = (self.reg)[i]
-            if isinstance((x[0].value), Value) and isinstance(x[0].type, str):  # constant wildcard x
+            x = self.reg[i]
+            if isinstance(x[0].value, Value) and isinstance(x[0].type, str):  # constant wildcard x
                 scope = x[1].scope
                 if x[0].value.wildcard:  # wildcard
                     cg.pushNewScope(getName, scope["__len__"])
@@ -943,7 +942,7 @@ class Expression:
                     n = x[1].genCode(scope, cg, getName)
                     cg.MRuleRet(n, typ[1], getName)
 
-            elif isinstance((x[0].value), list):  # compound type
+            elif isinstance(x[0].value, list):  # compound type
                 FLabel = getLabel()
                 scope = x[1].scope
                 cg.emitInst("; compound binding")
@@ -952,7 +951,4 @@ class Expression:
                 x[0].genCode(x[1].scope, cg, "%param", getName, None, 1)  # fill scope
                 n = x[1].genCode(x[1].scope, cg, getName)  # calc exp
                 cg.MRuleRet(n, typ[1], getName)
-                cg.em
-
-
-Inst("{}:".format(FLabel))
+                cg.emitInst("{}:".format(FLabel))

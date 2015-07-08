@@ -67,8 +67,8 @@ tokens = [
 
 t_SUSPENSION = r'\.{3}'
 
-literals = ['(', ')', '[', ']', '{', '}', ',', ';', '_', ':', '|', '=', '#', \
-            '+', '-', '/', '*', '@', '!', '$', '<', '>', '^', '~', '\'', "'"]
+literals = ['(', ')', '[', ']', '{', '}', ',', ';', '_', ':', '|', '=', '#', '+', '-', '/', '*', '@', '!', '$', '<',
+            '>', '^', '~', '\'', "'"]
 
 
 def t_ALPHANUMERIC(t):
@@ -78,7 +78,8 @@ def t_ALPHANUMERIC(t):
 
 
 def t_SYMBOLIC(t):
-    r'[\!\%\&\$\#\+\-\/\:\<\=\>\?\@\|\~\`\^\\\*]{2,}'
+    # noinspection PySingleQuotedDocstring,PySingleQuotedDocstring,PySingleQuotedDocstring
+    r"""[\!\%\&\$\#\+\-\/\:\<\=\>\?\@\|\~\`\^\\\*]{2,}"""
     t.type = reserved.get(t.value, 'SYMBOLIC')
     return t
 
@@ -113,9 +114,7 @@ def t_CHAR_VAL(t):
 
 # comment
 def t_COMMENT(t):
-    # r'\(\*([^*)]|[^*]\)|\*[^)])*\*\)'
     r'\(\*([^*]|[\r\n]|(\*+([^*)]|[\r\n])))*\*+\)'
-    # pass
     return t  # for debug
 
 

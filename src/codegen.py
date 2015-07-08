@@ -197,7 +197,7 @@ class CodeGenerator:
         self.emitInst("store i32 {}, i32* {}, align 4".format(n3, tmp))  # scope = tmp
         self.emitInst("; createRecord")
 
-        return (tmp, n2)
+        return tmp, n2
 
     def pushNewScope(self, getName, size):
         n1, n2, n3, n4 = getName(), getName(), getName(), getName()

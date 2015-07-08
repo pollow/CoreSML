@@ -261,4 +261,3 @@ attributes #6 = { noreturn nounwind }
 
 !0 = metadata !{metadata !"Ubuntu clang version 3.4-1ubuntu3 (tags/RELEASE_34/final) (based on LLVM 3.4)"}
 """
-
