@@ -223,9 +223,9 @@ class VCon:
 
 
 class Declaration:
-    def __init__(self, cls, binds):
+    def __init__(self, cls, bind):
         self.cls = cls
-        self.bind = binds
+        self.bind = bind
         self.dict = locals()
         self.dict.pop('self', None)
 
@@ -240,7 +240,6 @@ class Declaration:
         return self.__class__.__name__
 
     def checkType(self, env):
-        # print("dec checkType:",self.bind.checkType(env))
         if not self.bind.checkType(env):
             raise SMLSyntaxError("Valbind with different type.")
         else:

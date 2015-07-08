@@ -305,6 +305,25 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
+    def test_datatype(self):
+        print("--------Code Generator Test----------")
+        # x = ' val it = ({1=2};1;0;10)'
+        x = ' val it = let datatype Card = A | B of int | C of {1 : int, 2 : int} in A; 0 end'
+        # x = 'val it = let val a = 1 val b = 2 in 0 end'
+        # x = ''' val it =
+        #     let val f : { x : int, y : int, z : int }  -> int =
+        #         fn {x = 5, y = 10, z = 5} => 10
+        #          | {x = x : int, y = 20, z = z : int} => addi {1 = z, 2 = x}
+        #          | {x = x : int, ...} => muli {1 = x, 2 = 2}
+        #     in print (intToStr (f {x = 20, y = 21, z = 101})); 0 end '''
+        print("Test: ", x)
+        x = parser.parse(x)
+        env = typecheck(x)
+        desent(0, x)
+        codeGen(x, env)
+        self.assertEqual(True, True)
+        print("--------Code Generator Test Finished----------")
+
 if __name__ == '__main__':
     unittest.main()
 

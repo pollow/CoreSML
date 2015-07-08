@@ -16,7 +16,7 @@ errflag = [False]
 
 def p_error(p):
     if p:
-        print(colors.error("Syntax error near '%s' at line %d" % (p.value, p.lineno)))
+        print(colors.error("Syntax error near '%s' at line %d, %d" % (p.value, p.lineno, p.lexpos)))
     else:
         print(colors.error("Syntax error at EOF"))
     if error_handle == 1:
@@ -486,9 +486,9 @@ def p_datbind(p):
     '''
     if debug: print(" DATBIND ")
     if len(p) == 4:
-        p[0] = [datbind([], p[1], p[3])]
+        p[0] = datbind([], p[1], p[3])
     elif len(p) == 5:
-        p[0] = [datbind(p[1], p[2], p[4])]
+        p[0] = datbind(p[1], p[2], p[4])
 
 
 def p_conbind(p):
