@@ -73,19 +73,16 @@ class ParserTest(unittest.TestCase):
         x = 'val it = let val x = 1 val y = x in x end'
         print("Test: ", x)
         x = parser.parse(x)
-        env = typecheck(x)
         desent(0, x)
 
         x = 'val it = let val x : {1:int, 2:real, 3:string} = {1 = 1, 2 = 2.0, 3 = "abc"} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
-        env = typecheck(x)
         desent(0, x)
 
         x = 'val it = let val x = {1 = 1, 2 = 2.0, 3 = "abc"} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
-        env = typecheck(x)
         desent(0, x)
 
         x = 'val it = let ' \
@@ -95,7 +92,6 @@ class ParserTest(unittest.TestCase):
 
         print("Test: ", x)
         x = parser.parse(x)
-        # desent(0, x)
         typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
@@ -104,7 +100,6 @@ class ParserTest(unittest.TestCase):
         x = 'val it : int = let val {x = a : int, y = b : real} = {x = 1, y = 2.0} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
-        # desent(0, x)
         typecheck(x)
         desent(0, x)
 

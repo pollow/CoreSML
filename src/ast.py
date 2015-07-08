@@ -465,7 +465,7 @@ class typbind:
         return True
 
     def typBind(self, env):
-        env[self.tycon] = Tycon(name=self.tycon, type=self.type, size=0, len=0, tyvar=self.param)
+        env[self.tycon] = TyCon(name=self.tycon, type=self.type, size=0, len=0, tyvar=self.param)
 
 
 class valbind:
