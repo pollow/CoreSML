@@ -901,6 +901,7 @@ class Expression:
                 param=cg.getParamValue2(getName)# getparam
                 FLabel=getLabel()
                 cg.MRuleCompare(x[0].value,param,getName,getLabel,FLabel,typ[0]) # compare pattern
+                cg.pushNewScope(getName,x[1].scope['__len__'])
                 x[0].genCode(x[1].scope,cg,param,getName,None,1)# fill scope
                 print("-~~~~~~~~~~~~~~~~env check")
                 print(x[1].scope)
