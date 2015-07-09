@@ -224,6 +224,15 @@ define void @rtError(i8* %s) #0 {
   ret void
 }
 
+; Function Attrs: nounwind
+define void @printHex(i32 %x) #0 {
+  %1 = alloca i32, align 4
+  store i32 %x, i32* %1, align 4
+  %2 = load i32* %1, align 4
+  %3 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str12, i32 0, i32 0), i32 %2)
+  ret void
+}
+
 ; Function Attrs: noreturn nounwind
 declare void @exit(i32) #3
 
@@ -262,4 +271,3 @@ attributes #6 = { noreturn nounwind }
 
 !0 = metadata !{metadata !"Ubuntu clang version 3.4-1ubuntu3 (tags/RELEASE_34/final) (based on LLVM 3.4)"}
 """
-

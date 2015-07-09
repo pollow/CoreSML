@@ -6,6 +6,7 @@ from ast import *
 from typecheck import *
 from codegen import *
 
+
 def desent(level, x):
     if isinstance(x, tuple):
         print("  " * level, end="")
@@ -19,7 +20,8 @@ def desent(level, x):
             if y:
                 desent(level + 1, y)
 
-    elif type(x) in (TyCon, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, RecordItem, Unit, MRule, Match):
+    elif type(x) in (
+            TyCon, Expression, Declaration, Value, typbind, valbind, datbind, Pattern, RecordItem, Unit, MRule, Match):
         print("  " * level, end="")
         # x.show()
         print(x)
@@ -34,7 +36,8 @@ def desent(level, x):
 
 class ParserTest(unittest.TestCase):
     def test_ast(self):
-        x = parser.parse("val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
+        x = parser.parse(
+            "val it : int = let val x : int = 10 val double : int -> int = fn x : int => x mul 2 in double x end")
         desent(0, x)
         self.assertEqual(True, True)
 
@@ -70,19 +73,16 @@ class ParserTest(unittest.TestCase):
         x = 'val it = let val x = 1 val y = x in x end'
         print("Test: ", x)
         x = parser.parse(x)
-        env = typecheck(x)
         desent(0, x)
 
         x = 'val it = let val x : {1:int, 2:real, 3:string} = {1 = 1, 2 = 2.0, 3 = "abc"} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
-        env = typecheck(x)
         desent(0, x)
 
         x = 'val it = let val x = {1 = 1, 2 = 2.0, 3 = "abc"} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
-        env = typecheck(x)
         desent(0, x)
 
         x = 'val it = let ' \
@@ -92,7 +92,6 @@ class ParserTest(unittest.TestCase):
 
         print("Test: ", x)
         x = parser.parse(x)
-        # desent(0, x)
         typecheck(x)
         desent(0, x)
         self.assertEqual(True, True)
@@ -101,7 +100,6 @@ class ParserTest(unittest.TestCase):
         x = 'val it : int = let val {x = a : int, y = b : real} = {x = 1, y = 2.0} in 0 end'
         print("Test: ", x)
         x = parser.parse(x)
-        # desent(0, x)
         typecheck(x)
         desent(0, x)
 
@@ -164,18 +162,6 @@ class ParserTest(unittest.TestCase):
     def test_gen_hello(self):
         print("--------Code Generator Test----------")
 
-        # x = 'val it : int = let val f : int -> int = fn 0=>7 | 7=>14 | 14=>21 | x:int =>addi {1=x,2=1}  in print (intToStr (f(f (f (f 0)))));0 end'
-        # x = 'val it : int = let val f : int -> int = fn 0=>7 | 7=>14 | 14=>21  in print (intToStr (f (f (f 0))));0 end'
-        # x = 'val it : int = let val f : int -> int = fn 0=>7  | x:int =>addi {1=x,2=1} in print (intToStr (f 17));0 end'
-        
-
-        # x = 'val it : int = \
-        # let val f : {1:int ,2:int} -> int = \
-        # fn {1=5 , 2=10} => 15\
-        # |{1=3,2=23}=>26\
-        # |{1=4,2=19}=>23\
-        # in print (intToStr (f {1=4,2=19}));0 end'
-
         x = 'val it : int = \
         let val f : {1:int ,2:int} -> int = \
         fn {1=5 , 2=10} => addi{1=5,2=10} | \
@@ -185,7 +171,6 @@ class ParserTest(unittest.TestCase):
         _ => 100 \
         in print (intToStr (f {1=3,2=11}));0 end'
 
-    
         print("Test: ", x)
         x = parser.parse(x)
         env = typecheck(x)
@@ -194,7 +179,7 @@ class ParserTest(unittest.TestCase):
         desent(0, x)
         codeGen(x, env)
         self.assertEqual(True, True)
-        print("--------Code Generator Test Finished----------") 
+        print("--------Code Generator Test Finished----------")
 
         # print("--------Code Generator Test----------")
         # x = 'val it : int = let val x : int = 110 val s : string = "Hello World!\n" in x end'
@@ -252,6 +237,6 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(True, True)
         print("--------Code Generator Test Finished----------")
 
+
 if __name__ == '__main__':
     unittest.main()
-
